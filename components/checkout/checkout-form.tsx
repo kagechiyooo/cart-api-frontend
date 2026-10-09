@@ -20,7 +20,7 @@ import { formatCurrency } from '@/lib/format'
 import { useRevalidate } from '@/lib/hooks/use-api'
 import type { PaymentMethod } from '@/lib/types'
 
-const COUNTRIES = ['United States', 'Canada', 'United Kingdom', 'Germany', 'Brazil', 'Australia']
+const COUNTRIES = ['Thailand', 'United States', 'Canada', 'United Kingdom', 'Germany', 'Brazil', 'Australia']
 
 type Field =
   | 'fullName'
@@ -67,6 +67,8 @@ export function CheckoutForm({ totalCents }: { totalCents: number }) {
   const router = useRouter()
   const revalidate = useRevalidate()
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card')
+  const [zone, setZone] = useState('inCity')
+  const [speed, setSpeed] = useState('standard')
   const [values, setValues] = useState<FormValues>({
     fullName: user?.name ?? '',
     addressLine: '',
@@ -170,6 +172,53 @@ export function CheckoutForm({ totalCents }: { totalCents: number }) {
           </NativeSelect>
         </FormField>
       </fieldset>
+
+
+      <fieldset className="flex flex-col gap-4 rounded-lg border bg-card p-4">
+        <legend className="px-1 font-medium">
+          Shipping options
+        </legend>
+
+        <div className="flex flex-col gap-2">
+          <label htmlFor="shipping-zone" className="text-sm font-medium">
+            Shipping Zone
+          </label>
+
+          <select
+            id="shipping-zone"
+            aria-label="Shipping Zone"
+            data-testid="shipping-zone"
+            value={zone}
+            onChange={(e) => setZone(e.target.value)}
+            disabled={pending}
+            className="w-full rounded-md border bg-background p-2 text-sm"
+          >
+            <option value="inCity">In City</option>
+            <option value="upcountry">Upcountry</option>
+            <option value="remote">Remote</option>
+          </select>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <label htmlFor="shipping-speed" className="text-sm font-medium">
+            Shipping Speed
+          </label>
+
+          <select
+            id="shipping-speed"
+            aria-label="Shipping Speed"
+            data-testid="shipping-speed"
+            value={speed}
+            onChange={(e) => setSpeed(e.target.value)}
+            disabled={pending}
+            className="w-full rounded-md border bg-background p-2 text-sm"
+          >
+            <option value="standard">Standard</option>
+            <option value="express">Express</option>
+          </select>
+        </div>
+      </fieldset>
+
 
       <fieldset className="flex flex-col gap-4 rounded-lg border bg-card p-4">
         <legend className="px-1 font-medium">Payment method</legend>
