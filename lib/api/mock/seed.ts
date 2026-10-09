@@ -1,48 +1,15 @@
-import type { Coupon, Order, Product, User } from '@/lib/types'
-
-export interface MockUser extends User {
-  password: string
-}
-
-export interface MockCart {
-  items: { productId: string; quantity: number }[]
-  couponCode: string | null
-}
-
-export interface MockDb {
-  users: MockUser[]
-  products: Product[]
-  coupons: Coupon[]
-  orders: Order[]
-  carts: Record<string, MockCart>
-  sessionUserId: string | null
-  nextOrderNumber: number
-  nextId: number
-}
-
+import type { Coupon, Order, Product, User, Notice } from '@/lib/types'
+export interface MockUser extends User { password: string }
+export interface MockCart { stage: 'cart' | 'checkout' | 'success'; currentOrderId: string | null; items: { productId: string; quantity: number }[]; couponCode: string | null; notices?: Notice[] }
+export interface MockDb { users: MockUser[]; products: Product[]; coupons: Coupon[]; orders: Order[]; carts: Record<string, MockCart>; sessionUserId: string | null; nextOrderNumber: number; nextId: number }
 export const DEMO_ACCOUNTS = {
-  customer: { email: 'customer@example.com', password: 'password123' },
-  admin: { email: 'admin@example.com', password: 'admin123' },
+  customer: { username: 'cus_normal', email: 'cus_normal', password: 'password123' },
+  prime: { username: 'cus_prime', email: 'cus_prime', password: 'password123' },
+  admin: { username: 'admin01', email: 'admin01', password: 'admin123' },
 } as const
-
 export function createSeedDb(): MockDb {
   return {
-    users: [
-      {
-        id: 'u-customer',
-        name: 'Casey Customer',
-        email: DEMO_ACCOUNTS.customer.email,
-        password: DEMO_ACCOUNTS.customer.password,
-        role: 'customer',
-      },
-      {
-        id: 'u-admin',
-        name: 'Alex Admin',
-        email: DEMO_ACCOUNTS.admin.email,
-        password: DEMO_ACCOUNTS.admin.password,
-        role: 'admin',
-      },
-    ],
+    users: Object.entries(DEMO_ACCOUNTS).map(([key, account]) => ({ ...account, id: account.username, name: account.username, role: key === 'admin' ? 'admin' : 'customer', memberTier: key === 'prime' ? 'prime' : 'normal' })),
     products: [
       {
         id: 'p-1',
@@ -51,6 +18,7 @@ export function createSeedDb(): MockDb {
         priceCents: 12999,
         category: 'Electronics',
         stock: 15,
+        weightGram: 300,
         imageUrl: '/products/headphones.png',
         active: true,
       },
@@ -61,6 +29,7 @@ export function createSeedDb(): MockDb {
         priceCents: 8950,
         category: 'Electronics',
         stock: 8,
+        weightGram: 900,
         imageUrl: '/products/keyboard.png',
         active: true,
       },
@@ -71,6 +40,7 @@ export function createSeedDb(): MockDb {
         priceCents: 1499,
         category: 'Home',
         stock: 40,
+        weightGram: 400,
         imageUrl: '/products/mug.png',
         active: true,
       },
@@ -81,6 +51,7 @@ export function createSeedDb(): MockDb {
         priceCents: 5900,
         category: 'Accessories',
         stock: 12,
+        weightGram: 700,
         imageUrl: '/products/backpack.png',
         active: true,
       },
@@ -91,6 +62,7 @@ export function createSeedDb(): MockDb {
         priceCents: 3995,
         category: 'Home',
         stock: 0,
+        weightGram: 1200,
         imageUrl: '/products/lamp.png',
         active: true,
       },
@@ -101,6 +73,7 @@ export function createSeedDb(): MockDb {
         priceCents: 7499,
         category: 'Apparel',
         stock: 20,
+        weightGram: 800,
         imageUrl: '/products/sneakers.png',
         active: true,
       },
@@ -111,6 +84,7 @@ export function createSeedDb(): MockDb {
         priceCents: 2400,
         category: 'Accessories',
         stock: 30,
+        weightGram: 450,
         imageUrl: '/products/bottle.png',
         active: true,
       },
@@ -121,116 +95,12 @@ export function createSeedDb(): MockDb {
         priceCents: 4999,
         category: 'Apparel',
         stock: 3,
+        weightGram: 600,
         imageUrl: '/products/hoodie.png',
         active: true,
       },
     ],
-    coupons: [
-      {
-        id: 'c-1',
-        code: 'SAVE10',
-        description: '10% off any order',
-        type: 'percent',
-        value: 10,
-        minSubtotalCents: 0,
-        active: true,
-        expiresAt: null,
-      },
-      {
-        id: 'c-2',
-        code: 'WELCOME5',
-        description: '$5 off orders over $25',
-        type: 'fixed',
-        value: 500,
-        minSubtotalCents: 2500,
-        active: true,
-        expiresAt: '2030-12-31',
-      },
-      {
-        id: 'c-3',
-        code: 'BIG20',
-        description: '20% off orders over $100',
-        type: 'percent',
-        value: 20,
-        minSubtotalCents: 10000,
-        active: true,
-        expiresAt: null,
-      },
-      {
-        id: 'c-4',
-        code: 'EXPIRED15',
-        description: 'Expired seasonal promotion',
-        type: 'percent',
-        value: 15,
-        minSubtotalCents: 0,
-        active: true,
-        expiresAt: '2025-01-01',
-      },
-      {
-        id: 'c-5',
-        code: 'INACTIVE50',
-        description: 'Disabled internal coupon',
-        type: 'percent',
-        value: 50,
-        minSubtotalCents: 0,
-        active: false,
-        expiresAt: null,
-      },
-    ],
-    orders: [
-      {
-        id: 'ORD-1001',
-        userId: 'u-customer',
-        createdAt: '2026-09-02T14:20:00.000Z',
-        status: 'delivered',
-        items: [
-          { productId: 'p-3', name: 'Ceramic Coffee Mug', priceCents: 1499, quantity: 2 },
-          { productId: 'p-7', name: 'Insulated Water Bottle', priceCents: 2400, quantity: 1 },
-        ],
-        couponCode: null,
-        totals: {
-          subtotalCents: 5398,
-          discountCents: 0,
-          shippingCents: 0,
-          taxCents: 432,
-          totalCents: 5830,
-        },
-        shippingAddress: {
-          fullName: 'Casey Customer',
-          addressLine: '12 Testing Lane',
-          city: 'Springfield',
-          postalCode: '12345',
-          country: 'United States',
-        },
-        paymentMethod: 'card',
-      },
-      {
-        id: 'ORD-1002',
-        userId: 'u-customer',
-        createdAt: '2026-10-01T09:05:00.000Z',
-        status: 'pending',
-        items: [{ productId: 'p-2', name: 'Mechanical Keyboard', priceCents: 8950, quantity: 1 }],
-        couponCode: 'SAVE10',
-        totals: {
-          subtotalCents: 8950,
-          discountCents: 895,
-          shippingCents: 0,
-          taxCents: 644,
-          totalCents: 8699,
-        },
-        shippingAddress: {
-          fullName: 'Casey Customer',
-          addressLine: '12 Testing Lane',
-          city: 'Springfield',
-          postalCode: '12345',
-          country: 'United States',
-        },
-        paymentMethod: 'paypal',
-      },
-    ],
-    carts: {},
-    sessionUserId: null,
-    nextOrderNumber: 1003,
-    nextId: 100,
+    coupons: [{ id: 'SAVE10', code: 'SAVE10', description: '10% off, minimum 1000 baht', type: 'percent', value: 10, minSubtotalCents: 1000, active: true, expiresAt: null }],
+    orders: [], carts: {}, sessionUserId: null, nextOrderNumber: 1001, nextId: 100,
   }
 }

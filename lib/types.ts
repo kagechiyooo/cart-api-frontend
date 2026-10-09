@@ -1,10 +1,16 @@
 export type Role = 'customer' | 'admin'
+export type MemberTier = 'normal' | 'prime'
+export interface Notice { code: string; message: string }
+/** Legacy *Cents names contain whole BAHT, never satang. */
 
 export interface User {
   id: string
   name: string
   email: string
   role: Role
+  username?: string
+  token?: string
+  memberTier?: MemberTier
 }
 
 export interface Product {
@@ -12,6 +18,7 @@ export interface Product {
   name: string
   description: string
   priceCents: number
+  weightGram: number
   category: string
   stock: number
   imageUrl: string
@@ -19,10 +26,13 @@ export interface Product {
 }
 
 export interface CartItem {
+  id: string
+  available: boolean
   productId: string
   name: string
   priceCents: number
   quantity: number
+  weightGram: number
   imageUrl: string
   stock: number
 }
@@ -35,7 +45,15 @@ export interface Totals {
   totalCents: number
 }
 
+/** Internal English labels for the server's cart lifecycle. */
+export type CartStage = 'cart' | 'checkout' | 'success'
+
 export interface Cart {
+  notices: Notice[]
+  stage: CartStage
+  count: number
+  currentOrderId: string | null
+  coupon: Coupon | null
   items: CartItem[]
   couponCode: string | null
   totals: Totals
@@ -48,7 +66,7 @@ export interface Coupon {
   code: string
   description: string
   type: CouponType
-  /** Percent (1-100) when type is "percent", amount in cents when type is "fixed". */
+  /** Percent for SRS coupons; legacy fixed amounts, if present, are whole baht. */
   value: number
   minSubtotalCents: number
   active: boolean
@@ -56,7 +74,7 @@ export interface Coupon {
   expiresAt: string | null
 }
 
-export type OrderStatus = 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled'
+export type OrderStatus = 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'paid'
 
 export const ORDER_STATUSES: OrderStatus[] = [
   'pending',
@@ -64,6 +82,7 @@ export const ORDER_STATUSES: OrderStatus[] = [
   'shipped',
   'delivered',
   'cancelled',
+  'paid',
 ]
 
 export interface ShippingAddress {
@@ -77,6 +96,7 @@ export interface ShippingAddress {
 export type PaymentMethod = 'card' | 'paypal'
 
 export interface OrderItem {
+  weightGram: number
   productId: string
   name: string
   priceCents: number
@@ -84,6 +104,9 @@ export interface OrderItem {
 }
 
 export interface Order {
+  notices: Notice[]
+  totalWeightGram: number
+  discountSource: 'coupon' | 'member' | 'none'
   id: string
   userId: string
   createdAt: string
@@ -91,6 +114,8 @@ export interface Order {
   items: OrderItem[]
   couponCode: string | null
   totals: Totals
-  shippingAddress: ShippingAddress
-  paymentMethod: PaymentMethod
+  zone: 'inCity' | 'upcountry' | 'remote'
+  speed: 'standard' | 'express'
+  shippingAddress?: ShippingAddress
+  paymentMethod?: PaymentMethod
 }

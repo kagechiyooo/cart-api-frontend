@@ -1,8 +1,9 @@
-import { formatOrderStatus } from '@/lib/format'
+import { formatOrderStatus, formatOrderStatusLabel } from '@/lib/format'
 import type { OrderStatus } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
 const statusStyles: Record<OrderStatus, string> = {
+  paid: 'bg-emerald-100 text-emerald-900',
   pending: 'bg-amber-100 text-amber-900',
   processing: 'bg-sky-100 text-sky-900',
   shipped: 'bg-accent text-accent-foreground',
@@ -14,13 +15,13 @@ export function OrderStatusBadge({ status, testId }: { status: OrderStatus; test
   return (
     <span
       data-testid={testId ?? 'order-status'}
-      data-status={status}
+      data-status={formatOrderStatus(status)}
       className={cn(
         'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
         statusStyles[status],
       )}
     >
-      {formatOrderStatus(status)}
+      {formatOrderStatusLabel(status)}
     </span>
   )
 }

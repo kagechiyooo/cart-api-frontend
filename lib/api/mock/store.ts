@@ -1,8 +1,9 @@
-import { apiConfig } from '@/lib/api/config'
+import { apiConfig, assertTestMode } from '@/lib/api/config'
 import { ApiError } from '@/lib/api/errors'
 import { createSeedDb, type MockDb } from '@/lib/api/mock/seed'
 
-const STORAGE_KEY = 'mock-api-db-v1'
+// Isolate the restored catalog from persisted P1–P3 carts and orders; leave the old key untouched.
+const STORAGE_KEY = 'mock-api-db-srs-002-v1.8-original-catalog-v1'
 
 declare global {
   interface Window {
@@ -27,6 +28,11 @@ export function loadDb(): MockDb {
     if (stored) {
       try {
         memoryDb = JSON.parse(stored) as MockDb
+        // Backfill presentation assets without resetting carts, orders, or stock.
+        const seedImages = new Map(createSeedDb().products.map(product => [product.id, product.imageUrl]))
+        for (const product of memoryDb.products) {
+          if (!product.imageUrl) product.imageUrl = seedImages.get(product.id) ?? ''
+        }
         return memoryDb
       } catch {
         window.sessionStorage.removeItem(STORAGE_KEY)
@@ -45,20 +51,21 @@ export function saveDb(db: MockDb) {
 }
 
 export function resetMockDb() {
+  assertTestMode()
   memoryDb = null
   if (typeof window !== 'undefined') window.sessionStorage.removeItem(STORAGE_KEY)
 }
 
 function delay() {
   const ms =
-    typeof window !== 'undefined' && typeof window.__MOCK_API_DELAY__ === 'number'
+    apiConfig.testMode && typeof window !== 'undefined' && typeof window.__MOCK_API_DELAY__ === 'number'
       ? window.__MOCK_API_DELAY__
       : apiConfig.mockDelayMs
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 function shouldFail(operation: string): boolean {
-  if (typeof window === 'undefined') return false
+  if (!apiConfig.testMode || typeof window === 'undefined') return false
   const flag = window.__MOCK_API_FAIL__
   if (flag === true) return true
   return Array.isArray(flag) && flag.includes(operation)
@@ -70,7 +77,7 @@ export async function simulateRequest<T>(operation: string, handler: (db: MockDb
   if (shouldFail(operation)) {
     throw new ApiError('The server encountered an error. Please try again.', 500)
   }
-  const db = loadDb()
+  const db = structuredClone(loadDb())
   const result = handler(db)
   saveDb(db)
   return result === undefined ? result : structuredClone(result)

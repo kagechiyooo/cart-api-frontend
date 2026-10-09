@@ -1,3 +1,4 @@
+import { AppMessage } from '@/components/app-message'
 import { CircleAlert, LoaderCircle, RotateCw } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -29,11 +30,13 @@ export function LoadingState({
 }
 
 export function ErrorState({
+  error,
   title = 'Something went wrong',
   message,
   onRetry,
   testId = 'error-state',
 }: {
+  error?: unknown
   title?: string
   message: string
   onRetry?: () => void
@@ -44,7 +47,7 @@ export function ErrorState({
       <CircleAlert aria-hidden="true" />
       <AlertTitle>{title}</AlertTitle>
       <AlertDescription>
-        <p>{message}</p>
+        <AppMessage error={error} kind="error" code="UNKNOWN_ERROR">{message}</AppMessage>
         {onRetry && (
           <Button variant="outline" size="sm" className="mt-3" onClick={onRetry}>
             <RotateCw aria-hidden="true" />

@@ -1,5 +1,6 @@
 'use client'
 
+import { AppMessage } from '@/components/app-message'
 import { useState } from 'react'
 import Link from 'next/link'
 import { NativeSelect } from '@/components/form-field'
@@ -16,7 +17,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { getErrorMessage } from '@/lib/api'
-import { formatCurrency, formatDate, formatOrderStatus } from '@/lib/format'
+import { formatCurrency, formatDate, formatOrderStatusLabel } from '@/lib/format'
 import { useOrders } from '@/lib/hooks/use-api'
 import { ORDER_STATUSES, type OrderStatus } from '@/lib/types'
 
@@ -28,6 +29,7 @@ export function OrdersView() {
   if (error || !orders) {
     return (
       <ErrorState
+        error={error}
         title="Could not load your orders"
         message={getErrorMessage(error)}
         onRetry={() => mutate()}
@@ -63,7 +65,7 @@ export function OrdersView() {
           <option value="all">All statuses</option>
           {ORDER_STATUSES.map((s) => (
             <option key={s} value={s}>
-              {formatOrderStatus(s)}
+              {formatOrderStatusLabel(s)}
             </option>
           ))}
         </NativeSelect>
@@ -101,12 +103,12 @@ export function OrdersView() {
                   <TableCell>
                     <OrderStatusBadge status={order.status} />
                   </TableCell>
-                  <TableCell className="text-right tabular-nums">
+                  <TableCell data-testid="order-total" data-value={order.totals.totalCents} className="text-right tabular-nums">
                     {formatCurrency(order.totals.totalCents)}
                   </TableCell>
                   <TableCell className="text-right">
                     <Link
-                      href={`/orders/${order.id}`}
+                      data-testid="order-view" href={`/orders/${order.id}`}
                       className={buttonVariants({ variant: 'outline', size: 'sm' })}
                       aria-label={`View order ${order.id}`}
                     >

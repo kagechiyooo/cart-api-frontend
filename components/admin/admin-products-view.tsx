@@ -1,174 +1,116 @@
 'use client'
 
-import { useState } from 'react'
-import { Pencil, Plus, Trash2 } from 'lucide-react'
-import { toast } from 'sonner'
-import { ProductFormDialog } from '@/components/admin/product-form-dialog'
-import { ConfirmDialog } from '@/components/confirm-dialog'
+import { useEffect, useState } from 'react'
+import { AppMessage } from '@/components/app-message'
 import { ProductImage } from '@/components/products/product-image'
-import { EmptyState, ErrorState, LoadingState, PageHeader } from '@/components/states'
+import { EmptyState, LoadingState, PageHeader } from '@/components/states'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { api, getErrorMessage } from '@/lib/api'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { api, ApiError } from '@/lib/api'
 import { formatCurrency } from '@/lib/format'
 import { useProducts, useRevalidate } from '@/lib/hooks/use-api'
 import type { Product } from '@/lib/types'
 
-export function AdminProductsView() {
-  const { data: products, error, isLoading, mutate } = useProducts({ includeInactive: true })
+function ProductRow({ product }: { product: Product }) {
+  const [price, setPrice] = useState(String(product.priceCents))
+  const [stock, setStock] = useState(String(product.stock))
+  const [error, setError] = useState<unknown>(null)
+  const [pending, setPending] = useState(false)
   const revalidate = useRevalidate()
-  const [formOpen, setFormOpen] = useState(false)
-  const [editing, setEditing] = useState<Product | null>(null)
-  const [deleting, setDeleting] = useState<Product | null>(null)
+  const formId = `admin-product-form-${product.id}`
 
-  function openCreate() {
-    setEditing(null)
-    setFormOpen(true)
+  useEffect(() => {
+    setPrice(String(product.priceCents))
+    setStock(String(product.stock))
+  }, [product.priceCents, product.stock])
+
+  async function save(toggle = false) {
+    setPending(true)
+    setError(null)
+    try {
+      if (toggle) {
+        await api.products.setStatus(product.id, product.active ? 'ปิดขาย' : 'เปิดขาย')
+      } else {
+        await api.products.update(product.id, {
+          priceCents: price.trim() ? Number(price) : NaN,
+          stock: stock.trim() ? Number(stock) : NaN,
+        })
+      }
+      await revalidate.products()
+    } catch (err) {
+      setError(err)
+    } finally {
+      setPending(false)
+    }
   }
 
-  function openEdit(product: Product) {
-    setEditing(product)
-    setFormOpen(true)
-  }
-
-  async function refreshAfterChange() {
-    await Promise.all([revalidate.products(), revalidate.cart()])
-  }
-
-  let content: React.ReactNode
-  if (isLoading) {
-    content = <LoadingState label="Loading products…" />
-  } else if (error || !products) {
-    content = (
-      <ErrorState
-        title="Could not load products"
-        message={getErrorMessage(error)}
-        onRetry={() => mutate()}
-      />
-    )
-  } else if (products.length === 0) {
-    content = (
-      <EmptyState
-        title="No products yet"
-        description="Create your first product to get started."
-        action={<Button onClick={openCreate}>Add product</Button>}
-      />
-    )
-  } else {
-    content = (
-      <div className="rounded-lg border bg-card">
-        <Table data-testid="admin-products-table">
-          <caption className="sr-only">All products</caption>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="pl-4">Product</TableHead>
-              <TableHead className="hidden md:table-cell">Category</TableHead>
-              <TableHead className="text-right">Price</TableHead>
-              <TableHead className="text-right">Stock</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="pr-4 text-right">
-                <span className="sr-only">Actions</span>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {products.map((product) => (
-              <TableRow key={product.id} data-testid={`admin-product-row-${product.id}`}>
-                <TableCell className="pl-4">
-                  <div className="flex items-center gap-3">
-                    <div className="size-10 shrink-0 overflow-hidden rounded-md bg-muted">
-                      <ProductImage src={product.imageUrl} alt="" />
-                    </div>
-                    <span className="font-medium">{product.name}</span>
-                  </div>
-                </TableCell>
-                <TableCell className="hidden md:table-cell">{product.category}</TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {formatCurrency(product.priceCents)}
-                </TableCell>
-                <TableCell
-                  className={`text-right tabular-nums ${product.stock === 0 ? 'text-destructive' : ''}`}
-                >
-                  {product.stock}
-                </TableCell>
-                <TableCell>
-                  <Badge variant={product.active ? 'default' : 'secondary'}>
-                    {product.active ? 'Active' : 'Hidden'}
-                  </Badge>
-                </TableCell>
-                <TableCell className="pr-4">
-                  <div className="flex justify-end gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label={`Edit ${product.name}`}
-                      onClick={() => openEdit(product)}
-                      data-testid="edit-product"
-                    >
-                      <Pencil aria-hidden="true" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label={`Delete ${product.name}`}
-                      onClick={() => setDeleting(product)}
-                      data-testid="delete-product"
-                    >
-                      <Trash2 aria-hidden="true" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    )
-  }
-
+  const fields = error instanceof ApiError ? error.fields : undefined
   return (
-    <>
-      <PageHeader
-        title="Products"
-        description="Create, edit and remove products from the catalog."
-        actions={
-          <Button onClick={openCreate} data-testid="add-product">
-            <Plus aria-hidden="true" />
-            Add product
-          </Button>
-        }
-      />
-      {content}
+    <TableRow data-testid={`admin-product-row-${product.id}`}>
+      <TableCell className="pl-4">
+        <div className="flex items-center gap-3">
+          <div className="size-10 shrink-0 overflow-hidden rounded-md bg-muted">
+            <ProductImage src={product.imageUrl} alt="" />
+          </div>
+          <span className="font-medium">{product.name}</span>
+        </div>
+      </TableCell>
+      <TableCell className="hidden md:table-cell">{product.category}</TableCell>
+      <TableCell className="text-right tabular-nums">
+        <div className="flex flex-col items-end gap-2">
+          <span data-testid="admin-product-price" data-value={product.priceCents}>{formatCurrency(product.priceCents)}</span>
+          <Input form={formId} aria-label={`Price ${product.name}`} aria-invalid={fields?.includes('price')} data-testid="admin-product-price-input" type="number" step="1" value={price} disabled={pending} onChange={e => setPrice(e.target.value)} className="w-28 text-right" />
+        </div>
+      </TableCell>
+      <TableCell className={`text-right tabular-nums ${product.stock === 0 ? 'text-destructive' : ''}`}>
+        <div className="flex flex-col items-end gap-2">
+          <span data-testid="admin-product-stock" data-value={product.stock}>{product.stock}</span>
+          <Input form={formId} aria-label={`Stock ${product.name}`} aria-invalid={fields?.includes('stock')} data-testid="admin-product-stock-input" type="number" step="1" value={stock} disabled={pending} onChange={e => setStock(e.target.value)} className="w-20 text-right" />
+        </div>
+      </TableCell>
+      <TableCell>
+        <Badge data-testid="admin-product-status" data-status={product.active ? 'เปิดขาย' : 'ปิดขาย'} variant={product.active ? 'default' : 'secondary'}>
+          {product.active ? 'On sale' : 'Not for sale'}
+        </Badge>
+      </TableCell>
+      <TableCell className="pr-4">
+        <form id={formId} noValidate aria-label={`Edit ${product.name}`} className="flex justify-end gap-1" onSubmit={e => { e.preventDefault(); void save() }}>
+          <Button size="sm" data-testid="admin-product-save" disabled={pending}>Save</Button>
+          <Button size="sm" type="button" variant="outline" data-testid="admin-product-toggle-status" disabled={pending} onClick={() => void save(true)}>Toggle status</Button>
+        </form>
+        {error != null && <div className="mt-2"><AppMessage error={error} /></div>}
+      </TableCell>
+    </TableRow>
+  )
+}
 
-      <ProductFormDialog
-        open={formOpen}
-        onOpenChange={setFormOpen}
-        product={editing}
-        onSaved={refreshAfterChange}
-      />
-
-      <ConfirmDialog
-        open={deleting !== null}
-        onOpenChange={(open) => !open && setDeleting(null)}
-        title={`Delete ${deleting?.name ?? 'product'}?`}
-        description="The product will be removed from the catalog and from every cart."
-        confirmLabel="Delete product"
-        pendingLabel="Deleting…"
-        onConfirm={async () => {
-          if (!deleting) return
-          await api.products.remove(deleting.id)
-          await refreshAfterChange()
-          toast.success(`${deleting.name} deleted.`)
-        }}
-      />
-    </>
+export function AdminProductsView() {
+  const { data, error } = useProducts({ includeInactive: true })
+  return (
+    <section data-testid="page-admin-products">
+      <PageHeader title="Products" description="Manage prices, stock, and availability" />
+      {error ? <AppMessage error={error} /> : !data ? <LoadingState label="Loading products…" /> : data.length === 0 ? (
+        <EmptyState title="No products yet" description="No products are available in the catalog." />
+      ) : (
+        <div className="rounded-lg border bg-card">
+          <Table data-testid="admin-products-table">
+            <caption className="sr-only">All products. Prices are in whole THB.</caption>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="pl-4">Product</TableHead>
+                <TableHead className="hidden md:table-cell">Category</TableHead>
+                <TableHead className="text-right">Price (THB)</TableHead>
+                <TableHead className="text-right">Stock</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="pr-4 text-right"><span className="sr-only">Actions</span></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>{data.map(product => <ProductRow key={product.id} product={product} />)}</TableBody>
+          </Table>
+        </div>
+      )}
+    </section>
   )
 }

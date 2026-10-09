@@ -2,7 +2,7 @@ import type { Coupon, OrderStatus } from '@/lib/types'
 
 const currencyFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
-  currency: 'USD',
+  currency: 'THB',
 })
 
 const dateFormatter = new Intl.DateTimeFormat('en-US', {
@@ -12,7 +12,7 @@ const dateFormatter = new Intl.DateTimeFormat('en-US', {
 })
 
 export function formatCurrency(cents: number): string {
-  return currencyFormatter.format(cents / 100)
+  return currencyFormatter.format(cents)
 }
 
 export function formatDate(iso: string): string {
@@ -24,13 +24,17 @@ export function formatCouponValue(coupon: Pick<Coupon, 'type' | 'value'>): strin
 }
 
 export function formatOrderStatus(status: OrderStatus): string {
-  return status.charAt(0).toUpperCase() + status.slice(1)
+  return ({ pending: 'รอชำระเงิน', paid: 'ชำระเงินแล้ว', cancelled: 'ยกเลิก', processing: 'กำลังดำเนินการ', shipped: 'จัดส่งแล้ว', delivered: 'ส่งถึงแล้ว' })[status]
+}
+
+export function formatOrderStatusLabel(status: OrderStatus): string {
+  return ({ pending: 'Awaiting payment', paid: 'Paid', cancelled: 'Cancelled', processing: 'Processing', shipped: 'Shipped', delivered: 'Delivered' })[status]
 }
 
 export function dollarsToCents(value: string): number {
-  return Math.round(Number.parseFloat(value) * 100)
+  return Number(value)
 }
 
 export function centsToDollarsInput(cents: number): string {
-  return (cents / 100).toFixed(2)
+  return String(cents)
 }

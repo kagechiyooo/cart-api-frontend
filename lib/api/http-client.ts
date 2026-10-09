@@ -42,13 +42,19 @@ export async function httpRequest<T>(path: string, options: RequestOptions = {})
 
   if (!response.ok) {
     let message = `Request failed with status ${response.status}.`
+    let code: string | undefined
+    let fields: ('price' | 'stock')[] | undefined
+    let productIds: string[] | undefined
     try {
       const data = await response.json()
       if (typeof data?.message === 'string') message = data.message
+      code = data?.code
+      fields = data?.fields
+      productIds = data?.productIds
     } catch {
       // Response had no JSON body; keep the generic message.
     }
-    throw new ApiError(message, response.status)
+    throw new ApiError(message, response.status, code, fields, productIds)
   }
 
   if (response.status === 204) return undefined as T

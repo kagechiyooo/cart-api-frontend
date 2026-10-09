@@ -16,7 +16,7 @@ export async function generateMetadata({
 export default async function OrderDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   return (
-    <RequireAuth>
+    <RequireAuth role="customer">
       <Suspense fallback={<LoadingState />}>
         <OrderDetailsView id={decodeURIComponent(id)} />
       </Suspense>
