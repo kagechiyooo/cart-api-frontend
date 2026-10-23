@@ -6,10 +6,11 @@ import { AppMessage, Notices } from '@/components/app-message'
 import { OrderSummary } from '@/components/order-summary'
 import { LoadingState } from '@/components/states'
 import { Button } from '@/components/ui/button'
-import { api, getTestApi } from '@/lib/api'
+import { api, payOrder } from '@/lib/api'
 import { useCart, useCartMutation, useOrder, useRevalidate } from '@/lib/hooks/use-api'
 import { swrKeys } from '@/lib/hooks/keys'
 import { formatCurrency } from '@/lib/format'
+import { apiConfig } from '@/lib/api/config'
 
 export function CheckoutView({ success = false }: { success?: boolean }) {
   const { data: cart, error: cartError } = useCart()
@@ -27,8 +28,7 @@ export function CheckoutView({ success = false }: { success?: boolean }) {
     setPending(true); setError(null); setFailed(false)
     try {
       if (payment) {
-        const gateway = getTestApi()
-        await gateway.payments[payment](order.id)
+        await payOrder(order.id)
         await refresh()
         if (payment === 'success') router.push('/success'); else setFailed(true)
       } else {
@@ -50,7 +50,7 @@ export function CheckoutView({ success = false }: { success?: boolean }) {
         {failed && <AppMessage code="PAYMENT_FAILED">การชำระเงินล้มเหลว กรุณาลองใหม่</AppMessage>}
         <Button size="lg" onClick={() => action()} disabled={pending} data-testid={success ? 'continue-shopping-button' : 'cancel-checkout-button'}>{success ? 'Continue shopping' : 'Cancel checkout'}</Button>
         {!success && <Button variant="outline" onClick={async () => { try { await refresh() } catch (err) { setError(err) } }}>Check payment status</Button>}
-        {!success && process.env.NEXT_PUBLIC_TEST_MODE === 'true' && <div className="flex flex-wrap gap-2"><Button data-testid="gateway-pay-success" disabled={pending} onClick={() => action('success')}>Test successful payment</Button><Button data-testid="gateway-pay-fail" disabled={pending} onClick={() => action('fail')}>Test failed payment</Button></div>}
+        {!success && (apiConfig.mode === 'pay_succeed' || apiConfig.mode === 'pay_failed') && <Button data-testid="pay-button" disabled={pending || order.status !== 'pending'} onClick={() => action(apiConfig.mode === 'pay_succeed' ? 'success' : 'fail')}>Pay</Button>}
       </section>
       <aside aria-labelledby="checkout-summary-heading" className="flex flex-col gap-4 rounded-lg border bg-card p-4 lg:sticky lg:top-24">
         <h2 id="checkout-summary-heading" className="font-medium">Order summary</h2>

@@ -155,17 +155,28 @@ notepad .env.local
 Enter and save:
 
 ```dotenv
-NEXT_PUBLIC_API_MODE=rest
+NEXT_PUBLIC_API_MODE=api
 NEXT_PUBLIC_API_BASE_URL=http://localhost:3001
 ```
 
-Without `NEXT_PUBLIC_API_MODE=rest`, the frontend uses its mock adapter rather than the real API.
+Choose `NEXT_PUBLIC_API_MODE` according to the checkout flow you need:
 
-Do not put database credentials or secrets in `NEXT_PUBLIC_*` variables; these values are exposed to the browser. Leave `NEXT_PUBLIC_TEST_MODE` unset for normal use.
+| Value | Data source and payment behavior |
+| --- | --- |
+| `mock` | Browser-only mock data; no real backend or database requests. |
+| `api` | Real backend; payment completion requires an external `POST /payments/{id}/success` or `POST /payments/{id}/fail` callback. |
+| `pay_succeed` | Real backend; the **Pay** button always invokes the success callback. |
+| `pay_failed` | Real backend; the **Pay** button always invokes the failure callback. |
+
+`rest` remains a supported legacy alias for `api`. In callback paths, replace `{id}` with the payment ID. The simulated payment modes (`pay_succeed` and `pay_failed`) are **for local development only**: they use the real backend and affect the connected real database, not browser-only mock data.
+
+`NEXT_PUBLIC_TEST_MODE` remains a legacy test-helper flag; it no longer controls checkout buttons or payment outcomes. Leave it unset for normal use and select payment behavior with `NEXT_PUBLIC_API_MODE` instead. It does not enable backend reset routes.
+
+Do not put database credentials or secrets in `NEXT_PUBLIC_*` variables; these values are exposed to the browser.
 
 If using Notepad's Save As dialog, select **All files** so the filenames remain `.env` and `.env.local`, not `.env.txt` or `.env.local.txt`.
 
-Restart the frontend or API after changing its environment file. Environment files are loaded relative to each package's working directory, so use the directories shown in this guide.
+**Restart the frontend after changing its environment variables**, including `NEXT_PUBLIC_API_MODE`; for compiled runs, rebuild before restarting because public variables are embedded at build time. Restart the API after changing its environment file. Environment files are loaded relative to each package's working directory, so use the directories shown in this guide.
 
 ## 5. Build, migrate, and seed
 
@@ -353,7 +364,7 @@ Backend database integration tests are skipped by default. They require an expli
 | `DATABASE_URL is required` | Check the `.env` filename and run the API from `backend/api`. |
 | Database connection or TLS error | Use the PostgreSQL Database URL, not the HTTP URL. Local settings need `DATABASE_SSL=false` and `NODE_ENV=development`. |
 | Browser fetch or CORS error | Verify API port 3001, frontend REST variables, and exact `CORS_ORIGIN=http://localhost:3000`. Restart both applications after environment changes. |
-| Frontend works but backend receives no requests | Check that `frontend/.env.local` sets `NEXT_PUBLIC_API_MODE=rest`, then restart Next.js. |
+| Frontend works but backend receives no requests | Check that `frontend/.env.local` selects `api`, `pay_succeed`, or `pay_failed` (`rest` is a legacy alias for `api`), not browser-only `mock`, then restart Next.js. |
 | Production build is missing | Run `npm run build` before `npm start` in the relevant package, or use `npm run dev`. |
 | Hydration warning mentions `data-darkreader-*`, `bis_register`, or injected attributes | Test in a private window with extensions disabled. Disable Dark Reader or other page-modifying extensions for localhost. Do not hide the warning before ruling out extensions. |
 

@@ -1,4 +1,4 @@
-import { assertTestMode } from '@/lib/api/config'
+import { assertPaymentSimulation } from '@/lib/api/config'
 import { authToken, httpRequest } from '@/lib/api/http-client'
 import type { ApiServices, LoginResponse, PaymentSuccessResponse, PaymentFailResponse } from '@/lib/api/types'
 import type { Cart, CartStage, Coupon, Order, Product, Totals, User } from '@/lib/types'
@@ -53,17 +53,17 @@ function saveSession(user: User | null) {
 }
 const id = encodeURIComponent
 
-/** Test-only gateway adapter, separate from customer ApiServices.
- * No undocumented gateway credentials or reset endpoint are invented.
+/** Gateway simulation for explicit payment modes or legacy test helpers.
+ * Callbacks remain separate from customer ApiServices.
  */
 export const restPaymentCallbacks = {
   async success(orderId: string): Promise<PaymentSuccessResponse> {
-    assertTestMode()
+    assertPaymentSimulation('success')
     const response = await httpRequest<PaymentSuccessResponse>(`/payments/${id(orderId)}/success`, { method: 'POST' })
     return { ...response, status: response.status === 'ชำระเงินแล้ว' ? 'paid' : response.status }
   },
   fail(orderId: string): Promise<PaymentFailResponse> {
-    assertTestMode()
+    assertPaymentSimulation('fail')
     return httpRequest(`/payments/${id(orderId)}/fail`, { method: 'POST' })
   },
 }

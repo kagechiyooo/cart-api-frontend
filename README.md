@@ -79,11 +79,24 @@ ENABLE_TEST_ROUTES=false
 Create `frontend/.env.local` only if missing; otherwise edit it without overwriting existing settings:
 
 ```dotenv
-NEXT_PUBLIC_API_MODE=rest
+NEXT_PUBLIC_API_MODE=api
 NEXT_PUBLIC_API_BASE_URL=http://localhost:3001
 ```
 
-The frontend defaults to mock mode without `NEXT_PUBLIC_API_MODE=rest`. Never put database credentials or secrets in `NEXT_PUBLIC_*` variables. Restart the API/frontend after changing their env files. Local Supabase needs `DATABASE_SSL=false`; hosted connections need verified TLS (`DATABASE_SSL=true`). Unencrypted database connections are rejected in backend production mode.
+Choose `NEXT_PUBLIC_API_MODE` according to the checkout flow you need:
+
+| Value | Data source and payment behavior |
+| --- | --- |
+| `mock` | Browser-only mock data; no real backend or database requests. |
+| `api` | Real backend; payment completion requires an external `POST /payments/{id}/success` or `POST /payments/{id}/fail` callback. |
+| `pay_succeed` | Real backend; the **Pay** button always invokes the success callback. |
+| `pay_failed` | Real backend; the **Pay** button always invokes the failure callback. |
+
+`rest` remains a supported legacy alias for `api`. In callback paths, replace `{id}` with the payment ID. The simulated payment modes (`pay_succeed` and `pay_failed`) are **for local development only**: they use the real backend and affect the connected real database, not browser-only mock data.
+
+`NEXT_PUBLIC_TEST_MODE` remains a legacy test-helper flag; it no longer controls checkout buttons or payment outcomes. Leave it unset for normal use and select payment behavior with `NEXT_PUBLIC_API_MODE` instead. It does not enable backend reset routes.
+
+Never put database credentials or secrets in `NEXT_PUBLIC_*` variables. **Restart the frontend after changing its environment variables**, including `NEXT_PUBLIC_API_MODE`; for compiled runs, rebuild before restarting because public variables are embedded at build time. Restart the API after changing its env file. Local Supabase needs `DATABASE_SSL=false`; hosted connections need verified TLS (`DATABASE_SSL=true`). Unencrypted database connections are rejected in backend production mode.
 
 ### 5. Build the backend, migrate and seed
 
@@ -170,7 +183,7 @@ Coupon `SAVE10`: 10% discount, minimum 1000 baht. This catalog deliberately repl
 3. GET `http://localhost:3001/products`, Authorization → Bearer Token → the returned token. Expect a JSON array of active, in-stock products. Use `admin01` to see all products.
 4. Without a token, `/products` returns 401. A wrong password also returns 401. Errors use `{code,message,fields?,productIds?}`; input/business errors are 400, forbidden roles 403, and missing entities 404.
 
-Checkout reserves stock; cancellation restores it; successful payment clears the cart. Payment is simulated, not real processing. Gateway success/fail callbacks are unauthenticated under the SRS boundary: do not expose them publicly without external gateway verification/access control. `NEXT_PUBLIC_TEST_MODE=true` enables frontend test controls only, not backend reset routes; leave it unset outside testing.
+Checkout reserves stock; cancellation restores it; successful payment clears the cart. Payment is simulated, not real processing. Gateway success/fail callbacks are unauthenticated under the SRS boundary: do not expose them publicly without external gateway verification/access control.
 
 ## Tests
 

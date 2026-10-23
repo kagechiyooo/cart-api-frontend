@@ -40,6 +40,26 @@ function resetSrsReferenceDb() {
   saveDb(createSrsReferenceDb())
 }
 const { restServices, restPaymentCallbacks } = require('./rest/services.ts')
+test('four API modes resolve correctly and simulation guards match payment outcome', () => {
+  const { apiConfig, resolveApiMode, assertPaymentSimulation } = require('./config.ts')
+  for (const mode of ['mock', 'api', 'pay_succeed', 'pay_failed']) assert.equal(resolveApiMode(mode), mode)
+  assert.equal(resolveApiMode('rest'), 'api')
+  assert.equal(resolveApiMode(undefined), 'mock')
+  const previousMode = apiConfig.mode
+  const previousTestMode = apiConfig.testMode
+  try {
+    apiConfig.testMode = false
+    for (const mode of ['mock', 'api', 'pay_succeed', 'pay_failed']) {
+      apiConfig.mode = mode
+      for (const action of ['success', 'fail']) {
+        const allowed = mode === (action === 'success' ? 'pay_succeed' : 'pay_failed')
+        if (allowed) assert.doesNotThrow(() => assertPaymentSimulation(action))
+        else assert.throws(() => assertPaymentSimulation(action))
+      }
+    }
+  } finally { apiConfig.mode = previousMode; apiConfig.testMode = previousTestMode }
+})
+
 const customer = { username: 'cus_normal', password: 'password123' }
 const admin = { username: 'admin01', password: 'admin123' }
 const shipping = { zone: 'remote', speed: 'express' }
