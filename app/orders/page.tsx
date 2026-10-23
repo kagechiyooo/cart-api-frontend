@@ -7,11 +7,11 @@ export const metadata: Metadata = { title: 'Order history' }
 
 export default function OrdersPage() {
   return (
-    <>
+    <section data-testid="page-orders">
       <PageHeader title="Order history" description="Track and review your past orders." />
-      <RequireAuth>
+      <RequireAuth role="customer">
         <OrdersView />
       </RequireAuth>
-    </>
+    </section>
   )
 }

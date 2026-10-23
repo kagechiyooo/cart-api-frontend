@@ -8,22 +8,23 @@ import { isOrdersKey, isProductsKey, swrKeys } from '@/lib/hooks/keys'
 import type { Cart } from '@/lib/types'
 
 export function useProducts({ includeInactive = false } = {}) {
-  return useSWR(swrKeys.products(includeInactive), () => api.products.list({ includeInactive }))
+  const { user } = useAuth()
+  return useSWR(user ? swrKeys.products(includeInactive) : null, () => api.products.list({ includeInactive }))
 }
 
 export function useCart() {
   const { user } = useAuth()
-  return useSWR(user ? swrKeys.cart : null, () => api.cart.get())
+  return useSWR(user?.role === 'customer' ? swrKeys.cart : null, () => api.cart.get())
 }
 
 export function useOrders() {
   const { user } = useAuth()
-  return useSWR(user ? swrKeys.orders : null, () => api.orders.list())
+  return useSWR(user?.role === 'customer' ? swrKeys.orders : null, () => api.orders.list())
 }
 
 export function useOrder(id: string) {
   const { user } = useAuth()
-  return useSWR(user ? swrKeys.order(id) : null, () => api.orders.get(id))
+  return useSWR(user?.role === 'customer' ? swrKeys.order(id) : null, () => api.orders.get(id))
 }
 
 export function useCoupons() {

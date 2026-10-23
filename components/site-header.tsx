@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { LogOut, Menu, ShoppingCart, Store, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/components/auth-provider'
+import { AppMessage } from '@/components/app-message'
 import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { getErrorMessage } from '@/lib/api'
@@ -24,7 +25,7 @@ function getNavLinks(user: User | null): NavLink[] {
   const links: NavLink[] = [
     { href: '/products', label: 'Products', matchPrefix: '/products', testId: 'nav-products' },
   ]
-  if (user) {
+  if (user?.role === 'customer') {
     links.push({ href: '/orders', label: 'Orders', matchPrefix: '/orders', testId: 'nav-orders' })
   }
   if (user?.role === 'admin') {
@@ -32,9 +33,10 @@ function getNavLinks(user: User | null): NavLink[] {
       href: '/admin/products',
       label: 'Admin',
       matchPrefix: '/admin',
-      testId: 'nav-admin',
+      testId: 'nav-admin-products',
     })
   }
+  if (user?.role === 'admin') links.push({ href: '/admin/coupons', label: 'Coupons', matchPrefix: '/admin/coupons', testId: 'nav-admin-coupons' })
   return links
 }
 
@@ -45,19 +47,21 @@ export function SiteHeader() {
   const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
+    const [logoutError, setLogoutError] = useState<unknown>(null)
 
   const links = getNavLinks(user)
-  const cartCount = cart?.items.reduce((sum, item) => sum + item.quantity, 0) ?? 0
+  const cartCount = cart?.count ?? 0
 
   async function handleLogout() {
     setSigningOut(true)
+        setLogoutError(null)
     try {
       await logout()
       setMenuOpen(false)
       toast.success('You have been signed out.')
       router.push('/login')
     } catch (error) {
-      toast.error(getErrorMessage(error))
+      setLogoutError(error)
     } finally {
       setSigningOut(false)
     }
@@ -102,7 +106,7 @@ export function SiteHeader() {
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
-          {user && (
+          {user?.role === 'customer' && (
             <Link
               href="/cart"
               data-testid="nav-cart"
@@ -168,7 +172,8 @@ export function SiteHeader() {
         </div>
       </div>
 
-      {menuOpen && (
+      {logoutError != null && <AppMessage error={logoutError} />}
+            {menuOpen && (
         <nav id="mobile-nav" aria-label="Mobile" className="border-t px-4 py-3 md:hidden">
           <ul className="flex flex-col gap-1">{navItems}</ul>
           <div className="mt-3 border-t pt-3">

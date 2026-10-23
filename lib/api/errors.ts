@@ -1,7 +1,7 @@
 export class ApiError extends Error {
   readonly status: number
 
-  constructor(message: string, status = 500) {
+  constructor(message: string, status = 500, readonly code?: string, readonly fields?: ('price' | 'stock')[], readonly productIds?: string[]) {
     super(message)
     this.name = 'ApiError'
     this.status = status

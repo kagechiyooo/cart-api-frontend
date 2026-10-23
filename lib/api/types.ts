@@ -1,32 +1,21 @@
-import type {
-  Cart,
-  Coupon,
-  Order,
-  PaymentMethod,
-  Product,
-  ShippingAddress,
-  User,
-} from '@/lib/types'
+import type { Cart, Coupon, Order, Product, User } from '@/lib/types'
 
-export interface LoginInput {
-  email: string
-  password: string
-}
+export interface LoginInput { username: string; password: string }
+/** REST accepts title-case roles and normalizes them to internal lowercase roles. */
+export interface LoginResponse { token: string; role: User['role'] | 'Customer' | 'Admin'; memberTier?: User['memberTier'] }
 
-export type ProductInput = Omit<Product, 'id'>
-
-export type CouponInput = Omit<Coupon, 'id'>
-
+/** REST gateway payment success maps ชำระเงินแล้ว to paid. */
+export interface PaymentSuccessResponse { orderId: string; status: string }
+export interface PaymentFailResponse { message: string }
+export interface ProductInput { priceCents?: number; stock?: number }
+export type ProductStatus = 'เปิดขาย' | 'ปิดขาย'
+export type CouponStatus = 'เปิดใช้' | 'ปิดใช้'
 export interface CheckoutInput {
-  shippingAddress: ShippingAddress
-  paymentMethod: PaymentMethod
+  zone: 'inCity' | 'upcountry' | 'remote'
+  speed: 'standard' | 'express'
 }
 
-/**
- * The contract every UI component depends on. The mock adapter implements it
- * today; `rest/services.ts` is where each method gets mapped to the existing
- * REST API once its endpoints are known.
- */
+/** Only documented server operations; auth session helpers are local, not endpoints. */
 export interface ApiServices {
   auth: {
     login(input: LoginInput): Promise<User>
@@ -35,30 +24,25 @@ export interface ApiServices {
   }
   products: {
     list(options?: { includeInactive?: boolean }): Promise<Product[]>
-    get(id: string): Promise<Product>
-    create(input: ProductInput): Promise<Product>
     update(id: string, input: ProductInput): Promise<Product>
-    remove(id: string): Promise<void>
+    setStatus(id: string, status: ProductStatus): Promise<Product>
   }
   cart: {
     get(): Promise<Cart>
     addItem(productId: string, quantity: number): Promise<Cart>
-    updateItem(productId: string, quantity: number): Promise<Cart>
-    removeItem(productId: string): Promise<Cart>
-    clear(): Promise<Cart>
+    updateItem(id: string, quantity: number): Promise<Cart>
+    removeItem(id: string): Promise<Cart>
     applyCoupon(code: string): Promise<Cart>
-    removeCoupon(): Promise<Cart>
   }
   orders: {
     list(): Promise<Order[]>
     get(id: string): Promise<Order>
     checkout(input: CheckoutInput): Promise<Order>
-    cancel(id: string): Promise<Order>
+    cancel(): Promise<Cart>
+    continueShopping(): Promise<Cart>
   }
   coupons: {
     list(): Promise<Coupon[]>
-    create(input: CouponInput): Promise<Coupon>
-    update(id: string, input: CouponInput): Promise<Coupon>
-    remove(id: string): Promise<void>
+    setStatus(code: string, status: CouponStatus): Promise<Coupon>
   }
 }

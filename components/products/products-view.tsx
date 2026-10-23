@@ -123,7 +123,7 @@ export function ProductsView() {
         </div>
       ) : error ? (
         <ErrorState
-          title="Could not load products"
+          error={error} title="Could not load products"
           message={getErrorMessage(error)}
           onRetry={() => mutate()}
         />

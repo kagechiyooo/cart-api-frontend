@@ -26,7 +26,7 @@ export function RequireAuth({ role, children }: { role?: Role; children: React.R
       <EmptyState
         testId="access-denied"
         title="Access denied"
-        description="You need an administrator account to view this page."
+        description={`You need a ${role === 'admin' ? 'administrator' : 'customer'} account to view this page.`}
         action={
           <Link href="/products" className={buttonVariants({ variant: 'outline' })}>
             Back to products
