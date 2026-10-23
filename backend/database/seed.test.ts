@@ -8,7 +8,7 @@ process.env.DATABASE_URL ??= "postgresql://unused:unused@localhost/unused";
 const { seed, originalProducts, pool } = await import("./store.js");
 
 test("standalone PNG catalog matches frontend whole-baht values and assets", () => {
-  const source = readFileSync(new URL("../../lib/api/mock/seed.ts", import.meta.url), "utf8");
+  const source = readFileSync(new URL("../../frontend/lib/api/mock/seed.ts", import.meta.url), "utf8");
   const blocks = [...source.matchAll(/\{\s*id: '(p-\d+)',([\s\S]*?)active: true,\s*\}/g)];
   assert.equal(blocks.length, 8);
   const expected = blocks.map(([ , id, body]) => {
@@ -19,7 +19,7 @@ test("standalone PNG catalog matches frontend whole-baht values and assets", () 
   assert.deepEqual(originalProducts, expected);
   for (const product of originalProducts) {
     assert.match(product[7], /[.]png$/);
-    assert.ok(existsSync(new URL(`../../public${product[7]}`, import.meta.url)));
+    assert.ok(existsSync(new URL(`../../frontend/public${product[7]}`, import.meta.url)));
   }
 });
 

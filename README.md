@@ -1,6 +1,16 @@
-# Cart API frontend
+# Cart application
 
-Next.js shopping-cart frontend with an Express API and Supabase PostgreSQL, implementing SRS-CART-002. Local development runs three services: frontend **3000**, API **3001**, and PostgreSQL **54322**. `database-server` contains database scripts, not another HTTP server.
+Windows users: see [Windows CMD setup](README-WINDOW.md).
+
+```text
+root/
+  frontend/
+  backend/
+    api/
+    database/
+```
+
+Next.js shopping-cart frontend with an Express API and Supabase PostgreSQL, implementing SRS-CART-002. Local development runs three services: frontend **3000**, API **3001**, and PostgreSQL **54322**. `backend/database` contains database scripts, not another HTTP server.
 
 ## One-time setup (macOS)
 
@@ -24,9 +34,9 @@ Finish Docker's first-run prompts and wait until `docker info` succeeds before c
 ### 2. Install dependencies
 
 ```sh
-npm install
-(cd simple-backend/database-server && npm ci)
-(cd simple-backend/backend-server && npm ci)
+(cd frontend && npm install)
+(cd backend/database && npm ci)
+(cd backend/api && npm ci)
 ```
 
 The frontend declares `pnpm@12.3.4`, but also includes `package-lock.json`; this guide uses npm consistently. Install both backend packages because the API imports the database store.
@@ -34,29 +44,20 @@ The frontend declares `pnpm@12.3.4`, but also includes `package-lock.json`; this
 ### 3. Start Supabase and get the database URL
 
 ```sh
-(cd simple-backend/database-server && supabase start && supabase status)
+(cd backend/database && supabase start && supabase status)
 ```
 
-The first start downloads Docker images and may take several minutes. `simple-backend/database-server/supabase/config.toml` already exists: **do not run `supabase init` routinely**. Only if that file is absent, run `(cd simple-backend/database-server && supabase init)` before starting.
+The first start downloads Docker images and may take several minutes. `backend/database/supabase/config.toml` already exists: **do not run `supabase init` routinely**. Only if that file is absent, run `(cd backend/database && supabase init)` before starting.
 
 Use the actual **Database URL** shown by `supabase status`, not the HTTP API/Studio URL or an API key. The default is `postgresql://postgres:postgres@127.0.0.1:54322/postgres`. Status output contains keys; keep it private.
 
 ### 4. Configure environment files
 
-Copy each example **only if its destination is missing**:
-
-```sh
-if [ ! -f simple-backend/database-server/.env ]; then
-  cp simple-backend/database-server/.env.example simple-backend/database-server/.env
-fi
-if [ ! -f simple-backend/backend-server/.env ]; then
-  cp simple-backend/backend-server/.env.example simple-backend/backend-server/.env
-fi
-```
+Create `backend/database/.env` and `backend/api/.env` if missing.
 
 Edit these files in your editor; preserve unrelated existing settings. Use the actual Database URL from step 3 in **both** files.
 
-`simple-backend/database-server/.env`:
+`backend/database/.env`:
 
 ```dotenv
 DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres
@@ -64,7 +65,7 @@ DATABASE_SSL=false
 NODE_ENV=development
 ```
 
-`simple-backend/backend-server/.env`:
+`backend/api/.env`:
 
 ```dotenv
 DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres
@@ -75,7 +76,7 @@ NODE_ENV=development
 ENABLE_TEST_ROUTES=false
 ```
 
-Create root `.env.local` only if missing; otherwise edit it without overwriting existing settings:
+Create `frontend/.env.local` only if missing; otherwise edit it without overwriting existing settings:
 
 ```dotenv
 NEXT_PUBLIC_API_MODE=rest
@@ -87,8 +88,8 @@ The frontend defaults to mock mode without `NEXT_PUBLIC_API_MODE=rest`. Never pu
 ### 5. Build the backend, migrate and seed
 
 ```sh
-(cd simple-backend/database-server && npm run build && npm run migrate && npm run seed)
-(cd simple-backend/backend-server && npm run build)
+(cd backend/database && npm run build && npm run migrate && npm run seed)
+(cd backend/api && npm run build)
 ```
 
 These application migrations create the `cart_api` schema; `supabase start` does not apply them automatically. Migration/seed read the database package's `.env`. Seed preserves existing accounts, carts, orders and product prices/stock while refreshing original-catalog PNG paths. Referenced legacy products are retained; do not reset the database to update images. Rerun migrations for schema updates and seed only for intentional demo-data updates, not every day.
@@ -103,33 +104,33 @@ Start each terminal at the project root. If Supabase is still running from setup
 open -a Docker
 # Wait for Docker to be ready.
 docker info
-(cd simple-backend/database-server && supabase start && supabase status)
+(cd backend/database && supabase start && supabase status)
 ```
 
 **2. API — separate terminal**
 
 ```sh
-(cd simple-backend/backend-server && npm run dev)
+(cd backend/api && npm run dev)
 ```
 
-API `dev` does not watch files; restart after edits. For automatic restarts, use `(cd simple-backend/backend-server && npx --no-install tsx watch server.ts)` instead, not alongside it.
+API `dev` does not watch files; restart after edits. For automatic restarts, use `(cd backend/api && npx --no-install tsx watch server.ts)` instead, not alongside it.
 
 **3. Frontend — separate terminal**
 
 ```sh
-npm run dev
+(cd frontend && npm run dev)
 ```
 
 Open [http://localhost:3000](http://localhost:3000) and log in using a demo account below.
 
-For compiled runs, build **before** starting: root `npm run build` then `npm start` runs Next.js; `(cd simple-backend/backend-server && npm run build && npm start)` runs Express. Rebuild after source changes. Do not set backend `NODE_ENV=production` with the local non-TLS database. Database-package `npm start` runs a migration, not a service.
+For compiled runs, build **before** starting: `(cd frontend && npm run build && npm start)` runs Next.js; `(cd backend/api && npm run build && npm start)` runs Express. Rebuild after source changes. Do not set backend `NODE_ENV=production` with the local non-TLS database. Database-package `npm start` runs a migration, not a service.
 
 ## Stop
 
 Press **Ctrl+C** in the frontend and API terminals, then from the project root:
 
 ```sh
-(cd simple-backend/database-server && supabase stop)
+(cd backend/database && supabase stop)
 ```
 
 Normal stop preserves local database data. Do not use `--no-backup` or `supabase db reset` for routine shutdown. Quit Docker Desktop afterward if desired. Next startup does not need a reinstall or reseed.
@@ -176,10 +177,10 @@ Checkout reserves stock; cancellation restores it; successful payment clears the
 Run from the project root:
 
 ```sh
-node --test lib/api/spec.test.cjs
-npx tsc --noEmit
-(cd simple-backend/database-server && npm test)
-(cd simple-backend/backend-server && npm test)
+(cd frontend && node --test lib/api/spec.test.cjs)
+(cd frontend && npx tsc --noEmit)
+(cd backend/database && npm test)
+(cd backend/api && npm test)
 ```
 
 Backend `npm test` runs database-free pricing tests and **skips database integration by default**. Integration requires an explicitly supplied `DATABASE_URL` pointing to a migrated, isolated disposable database, plus `NODE_ENV=test`, `ENABLE_TEST_ROUTES=true` and `ISOLATED_TEST_DATABASE=true`. It destructively resets all `cart_api` data and invalidates sessions: never target your normal development, shared or production database.
@@ -189,7 +190,7 @@ Backend `npm test` runs database-free pricing tests and **skips database integra
 ## Troubleshooting
 
 - **Missing package/config/env:** check you are at the project root and use the grouped commands above. Env files load from each package's working directory.
-- **Supabase cannot start:** check `docker info`. For port conflicts, inspect `simple-backend/database-server/supabase/config.toml` and other running projects; do not delete/reset data to free a port. After any deliberate port change, read `supabase status` and update both `DATABASE_URL` values.
+- **Supabase cannot start:** check `docker info`. For port conflicts, inspect `backend/database/supabase/config.toml` and other running projects; do not delete/reset data to free a port. After any deliberate port change, read `supabase status` and update both `DATABASE_URL` values.
 - **Database connection/TLS error:** use the PostgreSQL Database URL, not port 54321's HTTP URL. Local settings must be `DATABASE_SSL=false` and `NODE_ENV=development`; hosted connections require verified TLS. Do not disable certificate verification.
 - **Next.js production build missing:** run root `npm run build` before `npm start`, or use `npm run dev`. API compiled start separately requires its own build.
 - **Browser API/CORS error:** confirm API port 3001, frontend REST env values, and exact `CORS_ORIGIN=http://localhost:3000` (scheme, hostname and port must match). Restart both apps after changes. If Next.js selects another port, free 3000 or deliberately update CORS. On another device, `localhost` points to that device, not your Mac.

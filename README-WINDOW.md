@@ -8,7 +8,7 @@ This guide runs the complete application locally on Windows using **CMD**, not P
 | Express API | http://localhost:3001 |
 | Supabase PostgreSQL | 127.0.0.1:54322 |
 
-`simple-backend/database-server` contains the database store and management scripts. It is not another HTTP server.
+`backend/database` contains the database store and management scripts. It is not another HTTP server.
 
 The commands below use this checkout location:
 
@@ -48,26 +48,26 @@ The frontend declares `pnpm@12.3.4`, but this repository also includes npm lockf
 If the frontend's existing `node_modules` was installed using pnpm, remove that generated directory before switching to npm:
 
 ```cmd
-cd /d Y:\work\year_IV\testing\project\cart-api-frontend
+cd /d Y:\work\year_IV\testing\project\cart-api-frontend\frontend
 if exist node_modules rmdir /s /q node_modules
 ```
 
 Install the frontend dependencies:
 
 ```cmd
-cd /d Y:\work\year_IV\testing\project\cart-api-frontend
+cd /d Y:\work\year_IV\testing\project\cart-api-frontend\frontend
 npm install
 ```
 
 Install both backend packages; the API imports the database store:
 
 ```cmd
-cd /d Y:\work\year_IV\testing\project\cart-api-frontend\simple-backend\database-server
+cd /d Y:\work\year_IV\testing\project\cart-api-frontend\backend\database
 npm ci
 ```
 
 ```cmd
-cd /d Y:\work\year_IV\testing\project\cart-api-frontend\simple-backend\backend-server
+cd /d Y:\work\year_IV\testing\project\cart-api-frontend\backend\api
 npm ci
 ```
 
@@ -78,7 +78,7 @@ Check that each command succeeds before continuing. Changes to `package-lock.jso
 Keep Docker Desktop running, then run:
 
 ```cmd
-cd /d Y:\work\year_IV\testing\project\cart-api-frontend\simple-backend\database-server
+cd /d Y:\work\year_IV\testing\project\cart-api-frontend\backend\database
 npx --yes supabase start
 ```
 
@@ -88,7 +88,7 @@ The initial image downloads may take several minutes. After startup succeeds:
 npx --yes supabase status
 ```
 
-The repository already includes `simple-backend/database-server/supabase/config.toml`. **Do not run `supabase init` as part of normal setup.**
+The repository already includes `backend/database/supabase/config.toml`. **Do not run `supabase init` as part of normal setup.**
 
 Find the **Database URL** in the status output. The default documented configuration is:
 
@@ -104,12 +104,12 @@ Status output may contain keys; keep it private.
 
 Create or edit the three files below. If a file already exists, preserve unrelated settings and update the relevant values instead of overwriting the entire file.
 
-The backend `.env.example` files referenced by the main README may not be present in your checkout; the settings below can be entered manually.
+Create the environment files manually using the settings below.
 
 ### Database package
 
 ```cmd
-cd /d Y:\work\year_IV\testing\project\cart-api-frontend\simple-backend\database-server
+cd /d Y:\work\year_IV\testing\project\cart-api-frontend\backend\database
 notepad .env
 ```
 
@@ -126,7 +126,7 @@ Replace `DATABASE_URL` with the actual value from Supabase status if necessary.
 ### Backend API
 
 ```cmd
-cd /d Y:\work\year_IV\testing\project\cart-api-frontend\simple-backend\backend-server
+cd /d Y:\work\year_IV\testing\project\cart-api-frontend\backend\api
 notepad .env
 ```
 
@@ -148,7 +148,7 @@ Local Supabase uses `DATABASE_SSL=false`. Do not set `NODE_ENV=production` with 
 ### Frontend
 
 ```cmd
-cd /d Y:\work\year_IV\testing\project\cart-api-frontend
+cd /d Y:\work\year_IV\testing\project\cart-api-frontend\frontend
 notepad .env.local
 ```
 
@@ -172,7 +172,7 @@ Restart the frontend or API after changing its environment file. Environment fil
 With Supabase running, run these commands in order. Stop and resolve any error before continuing:
 
 ```cmd
-cd /d Y:\work\year_IV\testing\project\cart-api-frontend\simple-backend\database-server
+cd /d Y:\work\year_IV\testing\project\cart-api-frontend\backend\database
 npm run build
 npm run migrate
 npm run seed
@@ -185,7 +185,7 @@ Seed preserves existing accounts, carts, orders, and product prices/stock while 
 Build the API:
 
 ```cmd
-cd /d Y:\work\year_IV\testing\project\cart-api-frontend\simple-backend\backend-server
+cd /d Y:\work\year_IV\testing\project\cart-api-frontend\backend\api
 npm run build
 ```
 
@@ -194,7 +194,7 @@ npm run build
 In one CMD window:
 
 ```cmd
-cd /d Y:\work\year_IV\testing\project\cart-api-frontend\simple-backend\backend-server
+cd /d Y:\work\year_IV\testing\project\cart-api-frontend\backend\api
 npm run dev
 ```
 
@@ -211,7 +211,7 @@ npx --no-install tsx watch server.ts
 Open a separate CMD window:
 
 ```cmd
-cd /d Y:\work\year_IV\testing\project\cart-api-frontend
+cd /d Y:\work\year_IV\testing\project\cart-api-frontend\frontend
 npm run dev
 ```
 
@@ -259,7 +259,7 @@ Open Docker Desktop, wait for it to be ready, then run:
 
 ```cmd
 docker info
-cd /d Y:\work\year_IV\testing\project\cart-api-frontend\simple-backend\database-server
+cd /d Y:\work\year_IV\testing\project\cart-api-frontend\backend\database
 npx --yes supabase start
 ```
 
@@ -268,14 +268,14 @@ If Supabase is already running, you can check it with `npx --yes supabase status
 ### 2. API — separate CMD window
 
 ```cmd
-cd /d Y:\work\year_IV\testing\project\cart-api-frontend\simple-backend\backend-server
+cd /d Y:\work\year_IV\testing\project\cart-api-frontend\backend\api
 npm run dev
 ```
 
 ### 3. Frontend — separate CMD window
 
 ```cmd
-cd /d Y:\work\year_IV\testing\project\cart-api-frontend
+cd /d Y:\work\year_IV\testing\project\cart-api-frontend\frontend
 npm run dev
 ```
 
@@ -288,7 +288,7 @@ Press **Ctrl+C** in the API and frontend windows. If CMD asks `Terminate batch j
 Then stop Supabase:
 
 ```cmd
-cd /d Y:\work\year_IV\testing\project\cart-api-frontend\simple-backend\database-server
+cd /d Y:\work\year_IV\testing\project\cart-api-frontend\backend\database
 npx --yes supabase stop
 ```
 
@@ -299,7 +299,7 @@ Normal stop preserves local database data. **Do not use `--no-backup` or `supaba
 For the frontend, build before starting:
 
 ```cmd
-cd /d Y:\work\year_IV\testing\project\cart-api-frontend
+cd /d Y:\work\year_IV\testing\project\cart-api-frontend\frontend
 npm run build
 npm start
 ```
@@ -307,7 +307,7 @@ npm start
 For the API, in a separate CMD window:
 
 ```cmd
-cd /d Y:\work\year_IV\testing\project\cart-api-frontend\simple-backend\backend-server
+cd /d Y:\work\year_IV\testing\project\cart-api-frontend\backend\api
 npm run build
 npm start
 ```
@@ -321,7 +321,7 @@ The database package's `npm start` runs a migration, not a persistent service.
 Frontend specification tests and type check:
 
 ```cmd
-cd /d Y:\work\year_IV\testing\project\cart-api-frontend
+cd /d Y:\work\year_IV\testing\project\cart-api-frontend\frontend
 node --test lib/api/spec.test.cjs
 npx --no-install tsc --noEmit
 ```
@@ -329,14 +329,14 @@ npx --no-install tsc --noEmit
 Database-package tests:
 
 ```cmd
-cd /d Y:\work\year_IV\testing\project\cart-api-frontend\simple-backend\database-server
+cd /d Y:\work\year_IV\testing\project\cart-api-frontend\backend\database
 npm test
 ```
 
 Backend tests:
 
 ```cmd
-cd /d Y:\work\year_IV\testing\project\cart-api-frontend\simple-backend\backend-server
+cd /d Y:\work\year_IV\testing\project\cart-api-frontend\backend\api
 npm test
 ```
 
@@ -350,10 +350,10 @@ Backend database integration tests are skipped by default. They require an expli
 | Docker cannot connect to its server | Open Docker Desktop, complete WSL/setup prompts, and wait until `docker info` succeeds. |
 | Supabase cannot start | Check Docker and the reported error. Inspect `supabase/config.toml` for port conflicts; do not delete/reset data to free a port. |
 | Database ports were deliberately changed | Run Supabase status and update `DATABASE_URL` in both backend `.env` files. |
-| `DATABASE_URL is required` | Check the `.env` filename and run the API from `simple-backend/backend-server`. |
+| `DATABASE_URL is required` | Check the `.env` filename and run the API from `backend/api`. |
 | Database connection or TLS error | Use the PostgreSQL Database URL, not the HTTP URL. Local settings need `DATABASE_SSL=false` and `NODE_ENV=development`. |
 | Browser fetch or CORS error | Verify API port 3001, frontend REST variables, and exact `CORS_ORIGIN=http://localhost:3000`. Restart both applications after environment changes. |
-| Frontend works but backend receives no requests | Check that root `.env.local` sets `NEXT_PUBLIC_API_MODE=rest`, then restart Next.js. |
+| Frontend works but backend receives no requests | Check that `frontend/.env.local` sets `NEXT_PUBLIC_API_MODE=rest`, then restart Next.js. |
 | Production build is missing | Run `npm run build` before `npm start` in the relevant package, or use `npm run dev`. |
 | Hydration warning mentions `data-darkreader-*`, `bis_register`, or injected attributes | Test in a private window with extensions disabled. Disable Dark Reader or other page-modifying extensions for localhost. Do not hide the warning before ruling out extensions. |
 

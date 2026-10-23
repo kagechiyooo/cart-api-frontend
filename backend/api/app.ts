@@ -6,7 +6,7 @@ import {
   transaction,
   verifyPassword,
   reset,
-} from "../database-server/store.js";
+} from "../database/store.js";
 import * as p from "./business/pricing.js";
 export class DomainError extends Error {
   constructor(

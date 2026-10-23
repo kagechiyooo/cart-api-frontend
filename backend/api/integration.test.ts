@@ -10,7 +10,7 @@ test(
   { skip: !enabled },
   async () => {
     const { app } = await import("./app.js");
-    const { pool } = await import("../database-server/store.js");
+    const { pool } = await import("../database/store.js");
     const server = app.listen(0);
     await new Promise<void>((r) => server.once("listening", r));
     const address = server.address() as { port: number };

@@ -1,5 +1,5 @@
 import { app } from "./app.js";
-import { pool } from "../database-server/store.js";
+import { pool } from "../database/store.js";
 const server = app.listen(Number(process.env.PORT ?? 3001), () =>
   console.log("Cart API listening"),
 );

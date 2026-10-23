@@ -4,10 +4,10 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "start": "node dist/backend-server/server.js",
+    "start": "node dist/api/server.js",
     "dev": "tsx server.ts",
-    "migrate": "npm --prefix ../database-server run migrate",
-    "seed": "npm --prefix ../database-server run seed",
+    "migrate": "npm --prefix ../database run migrate",
+    "seed": "npm --prefix ../database run seed",
     "test": "tsx --test *.test.ts"
   },
   "dependencies": {
