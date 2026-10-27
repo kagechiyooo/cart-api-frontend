@@ -203,6 +203,7 @@ for (const tc of checkoutCases) {
     const actual = validateCheckout({
       ...validInput,
       ...tc.input,
+      lines: [...("lines" in tc.input ? tc.input.lines : validInput.lines)],
     });
 
     assert.deepEqual(actual, tc.expected);
