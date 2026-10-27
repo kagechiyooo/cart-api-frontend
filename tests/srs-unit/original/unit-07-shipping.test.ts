@@ -1,7 +1,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { calculateShippingFee } from "../../../business/pricing.js";
+import { calculateShippingFee } from "../../../backend/api/business/pricing.js";
 
 type WeightTier = "light" | "medium" | "heavy";
 type Zone = "inCity" | "upcountry" | "remote";

@@ -1,7 +1,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { validateCheckout } from "../../../business/pricing.js";
+import { validateCheckout } from "../../../backend/api/business/pricing.js";
 
 const validInput = {
   zone: "inCity",

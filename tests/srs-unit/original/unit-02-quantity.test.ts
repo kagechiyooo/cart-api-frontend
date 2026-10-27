@@ -1,7 +1,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { validateQuantityChange } from "../../../business/pricing.js";
+import { validateQuantityChange } from "../../../backend/api/business/pricing.js";
 
 const validInput = {
   operation: "add" as const,

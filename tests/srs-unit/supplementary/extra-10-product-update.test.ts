@@ -1,7 +1,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { validateProductUpdate } from "../../../business/pricing.js";
+import { validateProductUpdate } from "../../../backend/api/business/pricing.js";
 
 const extraCases = [
   {

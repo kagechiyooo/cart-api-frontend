@@ -1,7 +1,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { validateProductUpdate } from "../../../business/pricing.js";
+import { validateProductUpdate } from "../../../backend/api/business/pricing.js";
 
 // FR-9.1.1: Price 1–50000, Stock 0–9999
 const productUpdateCases = [

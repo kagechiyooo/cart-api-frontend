@@ -1,7 +1,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { calculateDiscount } from "../../../business/pricing.js";
+import { calculateDiscount } from "../../../backend/api/business/pricing.js";
 
 // คูปองตาม Seed Data ของ SRS
 const activeCoupon = {

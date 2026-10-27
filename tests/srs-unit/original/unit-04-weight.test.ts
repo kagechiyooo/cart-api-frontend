@@ -1,7 +1,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { calculateTotalWeight } from "../../../business/pricing.js";
+import { calculateTotalWeight } from "../../../backend/api/business/pricing.js";
 
 const weightCases = [
   {

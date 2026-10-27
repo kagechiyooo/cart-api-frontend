@@ -1,7 +1,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { classifyWeight } from "../../../business/pricing.js";
+import { classifyWeight } from "../../../backend/api/business/pricing.js";
 
 const weightTierCases = [
   { id: "UT-060", weight: 1, expected: "light" },
