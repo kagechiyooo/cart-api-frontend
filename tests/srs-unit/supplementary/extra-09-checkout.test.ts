@@ -1,5 +1,5 @@
 
-import { test } from "node:test";
+import { test } from "vitest";
 import assert from "node:assert/strict";
 import { validateCheckout } from "../../../backend/api/business/pricing.js";
 
@@ -139,7 +139,7 @@ const extraCases = [
       productIds: ["P1"],
     },
   },
-] as const;
+];
 
 for (const tc of extraCases) {
   test(`${tc.id}: ${tc.name}`, () => {
