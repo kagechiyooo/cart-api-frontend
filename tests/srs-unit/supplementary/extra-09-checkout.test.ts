@@ -146,6 +146,7 @@ for (const tc of extraCases) {
     const actual = validateCheckout({
       ...validInput,
       ...tc.input,
+      lines: [...(tc.input.lines ?? validInput.lines)],
     });
 
     assert.deepEqual(actual, tc.expected);

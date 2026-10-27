@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "test": "npm run test:srs",
     "test:srs": "vitest run --config vitest.config.ts",
     "test:srs:watch": "vitest --watch --config vitest.config.ts",
     "test:srs:ui": "vitest --watch --ui --config vitest.config.ts --api.host 127.0.0.1 --api.port 51204 --api.strictPort --no-open",
@@ -13,6 +14,7 @@
   "devDependencies": {
     "@types/node": "^24.10.0",
     "@vitest/ui": "5.0.3",
+    "tsx": "^4.23.15",
     "typescript": "^5.9.3",
     "vite": "^8.0.0",
     "vitest": "5.0.3"
