@@ -14,7 +14,7 @@ Next.js shopping-cart frontend with an Express API and Supabase PostgreSQL, impl
 
 ## One-time setup (macOS)
 
-**Run every command below from the project root (`cart-api-frontend`).** Parenthesized commands temporarily switch directories and return you to the root. Assume Homebrew and **Node.js 24** (including npm) are installed. Node.js 24 is required for the SRS Vitest suite and also satisfies the full application requirement.
+**Run every command below from the project root (`cart-api-frontend`).** Parenthesized commands temporarily switch directories and return you to the root. Assume Homebrew and **Node.js 24** (including npm) are installed. This guide uses Node.js 24 for both the application and the SRS Vitest suite.
 
 ### 1. Install Docker Desktop and Supabase CLI
 
@@ -37,12 +37,14 @@ Finish Docker's first-run prompts and wait until `docker info` succeeds before c
 (cd frontend && npm install)
 (cd backend/database && npm ci)
 (cd backend/api && npm ci)
-npm --prefix tests ci
+(cd tests && npm ci)
 ```
 
 The frontend declares `pnpm@12.3.4`, but also includes `package-lock.json`; this guide uses npm consistently. Install both backend packages because the API imports the database store.
 
-The test command must also be run from the project root. It installs the SRS Vitest tools into `tests/node_modules`. If you only need the SRS unit suite, Node.js 24 plus `npm --prefix tests ci` is sufficient; the frontend and backend dependency installs above are not required.
+The last command installs the SRS test tools in `cart-api-frontend/tests/node_modules`, using `tests/package.json` and `tests/package-lock.json`. Run it after cloning, when the test lockfile changes, or when that dependency folder is missing. `npm install` can be used instead of `npm ci` inside `tests`, but may update the lockfile.
+
+**For SRS unit tests only:** Node.js 24 with npm and the last installation command are sufficient. Skip the application setup steps and continue to [SRS unit tests](#srs-unit-tests-vitest). No frontend/backend dependency installation, running services, Docker, database, `.env`, Conda, or virtual environment is needed.
 
 ### 3. Start Supabase and get the database URL
 
@@ -205,58 +207,54 @@ Backend `npm test` runs database-free pricing tests and **skips database integra
 
 ### SRS unit tests (Vitest)
 
-The SRS unit suite is separate from the existing frontend and backend test commands above. It imports the real pricing business logic but does not need the frontend, API server, Docker, database, or any `.env` file. If you only need this suite, install **Node.js 24 with npm** and the test-package dependencies; you can skip the full-system setup. No Conda or virtual environment is required.
+This separate suite imports the real business logic from `backend/api/business/pricing.ts` directly. Install its dependencies as described in [Install dependencies](#2-install-dependencies).
 
-These commands have been verified on Linux. The Windows workflow has not been run on a Windows machine yet.
+Use a terminal, including the integrated Terminal of VS Code, Cursor, or Antigravity. **Run each command below from `cart-api-frontend/`.** These examples use macOS/Linux shell syntax; Windows commands are in [README-WINDOW.md](README-WINDOW.md#srs-unit-tests-vitest).
 
-**First-time setup — run from the `cart-api-frontend` project root:**
+| Operation | Command |
+| --- | --- |
+| TypeScript strict check | `(cd tests && npm run typecheck:srs)` |
+| Run all tests once | `(cd tests && npm run test:srs)` |
+| Watch for changes | `(cd tests && npm run test:srs:watch)` |
+| Original suite | `(cd tests && npm run test:srs:original)` |
+| Supplementary suite | `(cd tests && npm run test:srs:supplementary)` |
+| One file | `(cd tests && npm run test:srs -- srs-unit/original/unit-09-checkout.test.ts)` |
+| One case by UT identifier | `(cd tests && npm run test:srs -- -t "UT-120")` |
+
+#### Vitest UI
 
 ```sh
-node --version
-npm --version
-npm --prefix tests ci
+(cd tests && npm run test:srs:ui)
 ```
 
-`npm --prefix tests ci` uses `tests/package-lock.json` and installs into the ignored `tests/node_modules` directory. Run it after cloning, when the lockfile changes, or when `tests/node_modules` is missing. `npm --prefix tests install` is an alternative that may update the lockfile; use one installation method, not both.
+Open the complete URL printed after `UI started at` in a browser on the same machine:
 
-**Daily use — run from the project root:**
-
-```sh
-# Strict TypeScript check
-npm --prefix tests run typecheck:srs
-
-# All 13 files / 172 test cases, once
-npm --prefix tests run test:srs
-
-# Watch mode
-npm --prefix tests run test:srs:watch
-
-# Original or supplementary suite only
-npm --prefix tests run test:srs:original
-npm --prefix tests run test:srs:supplementary
-
-# One file
-npm --prefix tests run test:srs -- srs-unit/original/unit-09-checkout.test.ts
-
-# One test ID
-npm --prefix tests run test:srs -- -t "UT-120"
-
-# Vitest UI
-npm --prefix tests run test:srs:ui
+```text
+http://127.0.0.1:51204/__vitest__/?token=...
 ```
 
-The full run should report **13 passed files and 172 passed tests**, with no failed or skipped tests. A `-t` filter intentionally reports the non-matching cases as skipped for that filtered run.
+Keep the path and actual token from the current run. Local use does not require port forwarding. Leave the terminal running while using watch mode or the UI, and press **Ctrl+C** to stop.
 
-For the UI, copy the complete URL printed after `UI started at`, including the latest `/__vitest__/` path and `?token=...`, and open it in a browser on the same machine. A typical shape is `http://127.0.0.1:51204/__vitest__/?token=...`; no real token is stored in this document. Local runs do not need port forwarding.
+#### Results and tracked files
 
-Stop watch mode or the UI with **Ctrl+C**. On Windows CMD, answer `Y` if it asks `Terminate batch job (Y/N)?`.
+Expected full-run results:
 
-The repository's `node_modules/` ignore rule covers `tests/node_modules`. Do not commit or copy that generated directory between operating systems; recreate it on each machine with `npm --prefix tests ci`. Commit `tests/package.json`, `tests/package-lock.json`, the test configs, and the test source files instead.
+| Suite | Files | Test cases |
+| --- | ---: | ---: |
+| Original | 10 | 154 |
+| Supplementary | 3 | 18 |
+| Total | 13 | 172 |
+
+A successful full run has no failed or skipped tests. Filtering with `-t` skips non-matching cases for that run only. If an assertion fails, compare the actual/received value with the expected value. Run the TypeScript check separately; passing tests does not replace it.
+
+The suite has been verified on Linux; Windows execution has not yet been verified for this revision.
+
+`tests/node_modules/` is ignored by Git. Reinstall dependencies on each machine rather than copying this folder between operating systems. Track the test source files, `tests/package.json`, `tests/package-lock.json`, `tests/vitest.config.ts`, and `tests/tsconfig.srs-unit.json`.
 
 ## Troubleshooting
 
 - **Missing package/config/env:** check you are at the project root and use the grouped commands above. Env files load from each package's working directory.
 - **Supabase cannot start:** check `docker info`. For port conflicts, inspect `backend/database/supabase/config.toml` and other running projects; do not delete/reset data to free a port. After any deliberate port change, read `supabase status` and update both `DATABASE_URL` values.
-- **Database connection/TLS error:** use the PostgreSQL Database URL, not port 54321's HTTP URL. Local settings must be `DATABASE_SSL=false` and `NODE_ENV=development`; hosted connections require verified TLS. Do not disable certificate verification.
+- **Database connection/TLS error:** use the PostgreSQL Database URL, not the HTTP URL. Local settings must be `DATABASE_SSL=false` and `NODE_ENV=development`; hosted connections require verified TLS. Do not disable certificate verification.
 - **Next.js production build missing:** run root `npm run build` before `npm start`, or use `npm run dev`. API compiled start separately requires its own build.
 - **Browser API/CORS error:** confirm API port 3001, frontend REST env values, and exact `CORS_ORIGIN=http://localhost:3000` (scheme, hostname and port must match). Restart both apps after changes. If Next.js selects another port, free 3000 or deliberately update CORS. On another device, `localhost` points to that device, not your Mac.

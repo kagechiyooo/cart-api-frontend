@@ -22,7 +22,7 @@ Replace that path if your checkout is elsewhere. CMD's `cd /d` switches both the
 
 Install:
 
-- **Node.js 24**, including npm. Node.js 24 is required for the SRS Vitest suite and also satisfies the full application requirement: https://nodejs.org/
+- **Node.js 24**, including npm. This guide uses Node.js 24 for both the application and the SRS Vitest suite: https://nodejs.org/
 - **Docker Desktop for Windows**: https://www.docker.com/products/docker-desktop/
 
 Complete Docker's setup, including any WSL 2 requirements or Windows restart it requests. Use Linux containers. Open Docker Desktop and wait for its engine to start.
@@ -72,6 +72,8 @@ npm ci
 ```
 
 Check that each command succeeds before continuing. Changes to `package-lock.json` may include npm-generated metadata such as `"peer": true`; do not edit that metadata manually.
+
+For the separate SRS Vitest suite, follow [SRS unit tests](#srs-unit-tests-vitest) below.
 
 ## 3. Start Supabase
 
@@ -329,67 +331,70 @@ The database package's `npm start` runs a migration, not a persistent service.
 
 ## SRS unit tests (Vitest)
 
-You can run the SRS unit suite in the integrated Terminal of **VS Code, Cursor, or Antigravity**. It is separate from the full application setup and imports the real pricing business logic without starting the frontend, API, Docker, Supabase/database, or creating `.env` files. If you only need these tests, install Node.js 24 with npm and the dependencies under `tests`; do not complete the full-system setup. No Conda or virtual environment is required.
+This separate suite imports the real business logic from `backend/api/business/pricing.ts` directly. It requires Node.js 24 with npm; no frontend/backend dependency installation, running services, Docker, database, `.env`, Conda, or virtual environment is needed.
 
-The suite has been verified on Linux, but this Windows workflow has not yet been run on a Windows machine.
+This section works in CMD or PowerShell, including the integrated Terminal of VS Code, Cursor, or Antigravity. The application instructions elsewhere in this file remain CMD-specific.
 
-### Move to the project root
+### Install test dependencies
 
-Every SRS npm command below starts at the `cart-api-frontend` root. Use **only the one instruction that matches your current directory**; these are alternatives, not consecutive steps:
+Open a terminal at the project root (`cart-api-frontend`), then run:
 
-- Already at `cart-api-frontend`: do not run `cd`.
-- At `backend\api` or `backend\database`: run `cd ..\..`.
-- At `frontend` or `tests`: run `cd ..`.
-
-After moving, `dir` should show `backend`, `frontend`, and `tests`.
-
-### First-time setup
-
-From the project root, verify Node.js 24 and npm, then install the test dependencies:
-
-```cmd
-node --version
-npm --version
-npm --prefix tests ci
+```text
+cd tests
+npm ci
 ```
 
-`npm --prefix tests ci` reads `tests\package-lock.json` and creates `tests\node_modules`. `npm --prefix tests install` is an alternative that may update the lockfile; use one installation method, not both.
+This installs dependencies into `cart-api-frontend/tests/node_modules` using the package and lockfile inside `tests`. You can use `npm install` instead, but it may update the lockfile.
 
-The repository ignores `node_modules` directories, including `tests\node_modules`. Do not commit that generated directory or copy it between Windows and Linux. Recreate it on each machine with `npm --prefix tests ci`.
+Install after cloning, when the test lockfile changes, or when `tests/node_modules` is missing. Daily test runs do not require reinstallation.
 
-### Daily use
+### Run tests
 
-Open a Terminal, return to the project root using the single matching instruction above, and run the needed command. You do not need `npm ci` every day; rerun it after cloning, when `tests\package-lock.json` changes, or when `tests\node_modules` is missing.
+**Keep the terminal in `cart-api-frontend/tests` for all commands below.** In a new terminal opened at the project root, run `cd tests` once first.
 
-```cmd
-REM Strict TypeScript check
-npm --prefix tests run typecheck:srs
+| Operation | Command |
+| --- | --- |
+| TypeScript strict check | `npm run typecheck:srs` |
+| Run all tests once | `npm run test:srs` |
+| Watch for changes | `npm run test:srs:watch` |
+| Original suite | `npm run test:srs:original` |
+| Supplementary suite | `npm run test:srs:supplementary` |
+| One file | `npm run test:srs -- srs-unit/original/unit-09-checkout.test.ts` |
+| One case by UT identifier | `npm run test:srs -- -t "UT-120"` |
 
-REM All 13 files / 172 test cases, once
-npm --prefix tests run test:srs
+### Vitest UI
 
-REM Watch mode
-npm --prefix tests run test:srs:watch
+From the same `tests` directory:
 
-REM Original or supplementary suite only
-npm --prefix tests run test:srs:original
-npm --prefix tests run test:srs:supplementary
-
-REM One file
-npm --prefix tests run test:srs -- srs-unit/original/unit-09-checkout.test.ts
-
-REM One test ID
-npm --prefix tests run test:srs -- -t "UT-120"
-
-REM Vitest UI
-npm --prefix tests run test:srs:ui
+```text
+npm run test:srs:ui
 ```
 
-A full run should report **13 passed files and 172 passed tests**, with no failed or skipped tests. When filtering with `-t`, non-matching tests are shown as skipped only for that filtered run.
+Open the complete URL printed after `UI started at` in a browser on the same machine:
 
-For the UI, copy the complete URL printed after `UI started at`, including the latest `/__vitest__/` path and `?token=...`, and open it in a browser on the same computer. A typical shape is `http://127.0.0.1:51204/__vitest__/?token=...`; this guide does not contain a real token. A local run does not need port forwarding.
+```text
+http://127.0.0.1:51204/__vitest__/?token=...
+```
 
-Stop watch mode or the UI with **Ctrl+C**. If CMD asks `Terminate batch job (Y/N)?`, enter `Y`.
+Keep the path and actual token from the current run. Local use does not require port forwarding.
+
+Leave the terminal running while using watch mode or the UI. Press **Ctrl+C** to stop; if CMD asks `Terminate batch job (Y/N)?`, enter `Y`. Run `cd ..` when you want to return to the project root.
+
+### Results and tracked files
+
+Expected full-run results:
+
+| Suite | Files | Test cases |
+| --- | ---: | ---: |
+| Original | 10 | 154 |
+| Supplementary | 3 | 18 |
+| Total | 13 | 172 |
+
+A successful full run has no failed or skipped tests. Filtering with `-t` skips non-matching cases for that run only. If an assertion fails, compare the actual/received value with the expected value. Run the TypeScript check separately; passing tests does not replace it.
+
+The suite has been verified on Linux; Windows execution has not yet been verified for this revision.
+
+`tests/node_modules/` is ignored by Git. Reinstall dependencies on each machine rather than copying this folder between operating systems. Track the test source files, `tests/package.json`, `tests/package-lock.json`, `tests/vitest.config.ts`, and `tests/tsconfig.srs-unit.json`.
 
 ## Optional checks
 
