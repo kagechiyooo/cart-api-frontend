@@ -1,0 +1,10 @@
+{
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --import tsx --test srs-unit/original/*.test.ts srs-unit/supplementary/*.test.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.15"
+  }
+}
