@@ -1,5 +1,5 @@
 
-import { test } from "node:test";
+import { test } from "vitest";
 import assert from "node:assert/strict";
 
 import {
@@ -196,14 +196,14 @@ const checkoutCases = [
     },
     expected: { result: "OK" },
   },
-] as const;
+];
 
 for (const tc of checkoutCases) {
   test(`${tc.id}: ${tc.name}`, () => {
     const actual = validateCheckout({
       ...validInput,
       ...tc.input,
-      lines: [...("lines" in tc.input ? tc.input.lines : validInput.lines)],
+      lines: [...(tc.input.lines ?? validInput.lines)],
     });
 
     assert.deepEqual(actual, tc.expected);

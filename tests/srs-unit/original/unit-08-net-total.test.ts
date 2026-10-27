@@ -1,5 +1,5 @@
 
-import { test } from "node:test";
+import { test } from "vitest";
 import assert from "node:assert/strict";
 import { calculateNetTotal } from "../../../backend/api/business/pricing.js";
 
