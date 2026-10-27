@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 
 import {
   validateCheckout,
-} from "../../../business/pricing.js";
+} from "../../../backend/api/business/pricing.js";
 
 // ข้อมูลตั้งต้นที่ผ่านทุกเงื่อนไข
 const validInput = {

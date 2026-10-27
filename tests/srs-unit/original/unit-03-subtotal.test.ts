@@ -1,7 +1,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { calculateSubtotal } from "../../../business/pricing.js";
+import { calculateSubtotal } from "../../../backend/api/business/pricing.js";
 
 const subtotalCases = [
   {

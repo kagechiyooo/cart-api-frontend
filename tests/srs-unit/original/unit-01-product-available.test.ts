@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { isProductAvailable } from "../../../business/pricing.js";
+import { isProductAvailable } from "../../../backend/api/business/pricing.js";
 
 // UT-001: เปิดขายและมีสต็อก
 test("UT-001: active product with stock is available", () => {
