@@ -218,7 +218,7 @@ route("put", "/cart/coupon", "Customer", async (db, req, u) => {
   const c = await one(db, "SELECT * FROM cart_api.coupons WHERE code=$1", [
     code,
   ]);
-  if (!c) reject("COUPON_NOT_FOUND", 404);
+  if (!c) reject("COUPON_INVALID");
   if (c.status !== "เปิดใช้") reject("COUPON_INVALID");
   await db.query("UPDATE cart_api.carts SET coupon_code=$2 WHERE user_id=$1", [
     u.id,
