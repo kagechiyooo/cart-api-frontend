@@ -14,7 +14,7 @@ Next.js shopping-cart frontend with an Express API and Supabase PostgreSQL, impl
 
 ## One-time setup (macOS)
 
-**Run every command below from the project root (`cart-api-frontend`).** Parenthesized commands temporarily switch directories and return you to the root. Assume Homebrew and **Node.js 22+** (including npm) are installed.
+**Run every command below from the project root (`cart-api-frontend`).** Parenthesized commands temporarily switch directories and return you to the root. Assume Homebrew and **Node.js 24** (including npm) are installed. Node.js 24 is required for the SRS Vitest suite and also satisfies the full application requirement.
 
 ### 1. Install Docker Desktop and Supabase CLI
 
@@ -37,9 +37,12 @@ Finish Docker's first-run prompts and wait until `docker info` succeeds before c
 (cd frontend && npm install)
 (cd backend/database && npm ci)
 (cd backend/api && npm ci)
+npm --prefix tests ci
 ```
 
 The frontend declares `pnpm@12.3.4`, but also includes `package-lock.json`; this guide uses npm consistently. Install both backend packages because the API imports the database store.
+
+The test command must also be run from the project root. It installs the SRS Vitest tools into `tests/node_modules`. If you only need the SRS unit suite, Node.js 24 plus `npm --prefix tests ci` is sufficient; the frontend and backend dependency installs above are not required.
 
 ### 3. Start Supabase and get the database URL
 
@@ -199,6 +202,56 @@ Run from the project root:
 Backend `npm test` runs database-free pricing tests and **skips database integration by default**. Integration requires an explicitly supplied `DATABASE_URL` pointing to a migrated, isolated disposable database, plus `NODE_ENV=test`, `ENABLE_TEST_ROUTES=true` and `ISOLATED_TEST_DATABASE=true`. It destructively resets all `cart_api` data and invalidates sessions: never target your normal development, shared or production database.
 
 `POST /test/reset` is unauthenticated and available only with `NODE_ENV=test` and `ENABLE_TEST_ROUTES=true`; otherwise it is 404. The isolation flag guards the integration runner, not route registration. Keep reset-capable servers isolated and test flags off during normal use.
+
+### SRS unit tests (Vitest)
+
+The SRS unit suite is separate from the existing frontend and backend test commands above. It imports the real pricing business logic but does not need the frontend, API server, Docker, database, or any `.env` file. If you only need this suite, install **Node.js 24 with npm** and the test-package dependencies; you can skip the full-system setup. No Conda or virtual environment is required.
+
+These commands have been verified on Linux. The Windows workflow has not been run on a Windows machine yet.
+
+**First-time setup — run from the `cart-api-frontend` project root:**
+
+```sh
+node --version
+npm --version
+npm --prefix tests ci
+```
+
+`npm --prefix tests ci` uses `tests/package-lock.json` and installs into the ignored `tests/node_modules` directory. Run it after cloning, when the lockfile changes, or when `tests/node_modules` is missing. `npm --prefix tests install` is an alternative that may update the lockfile; use one installation method, not both.
+
+**Daily use — run from the project root:**
+
+```sh
+# Strict TypeScript check
+npm --prefix tests run typecheck:srs
+
+# All 13 files / 172 test cases, once
+npm --prefix tests run test:srs
+
+# Watch mode
+npm --prefix tests run test:srs:watch
+
+# Original or supplementary suite only
+npm --prefix tests run test:srs:original
+npm --prefix tests run test:srs:supplementary
+
+# One file
+npm --prefix tests run test:srs -- srs-unit/original/unit-09-checkout.test.ts
+
+# One test ID
+npm --prefix tests run test:srs -- -t "UT-120"
+
+# Vitest UI
+npm --prefix tests run test:srs:ui
+```
+
+The full run should report **13 passed files and 172 passed tests**, with no failed or skipped tests. A `-t` filter intentionally reports the non-matching cases as skipped for that filtered run.
+
+For the UI, copy the complete URL printed after `UI started at`, including the latest `/__vitest__/` path and `?token=...`, and open it in a browser on the same machine. A typical shape is `http://127.0.0.1:51204/__vitest__/?token=...`; no real token is stored in this document. Local runs do not need port forwarding.
+
+Stop watch mode or the UI with **Ctrl+C**. On Windows CMD, answer `Y` if it asks `Terminate batch job (Y/N)?`.
+
+The repository's `node_modules/` ignore rule covers `tests/node_modules`. Do not commit or copy that generated directory between operating systems; recreate it on each machine with `npm --prefix tests ci`. Commit `tests/package.json`, `tests/package-lock.json`, the test configs, and the test source files instead.
 
 ## Troubleshooting
 

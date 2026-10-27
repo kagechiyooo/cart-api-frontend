@@ -22,7 +22,7 @@ Replace that path if your checkout is elsewhere. CMD's `cd /d` switches both the
 
 Install:
 
-- **Node.js 22 or later**, including npm. Node.js 24 LTS is suitable: https://nodejs.org/
+- **Node.js 24**, including npm. Node.js 24 is required for the SRS Vitest suite and also satisfies the full application requirement: https://nodejs.org/
 - **Docker Desktop for Windows**: https://www.docker.com/products/docker-desktop/
 
 Complete Docker's setup, including any WSL 2 requirements or Windows restart it requests. Use Linux containers. Open Docker Desktop and wait for its engine to start.
@@ -326,6 +326,70 @@ npm start
 Keep Supabase running. Rebuild after source changes. Do not run development and compiled servers on the same ports at the same time. Do not set the API to production mode with the local non-TLS database.
 
 The database package's `npm start` runs a migration, not a persistent service.
+
+## SRS unit tests (Vitest)
+
+You can run the SRS unit suite in the integrated Terminal of **VS Code, Cursor, or Antigravity**. It is separate from the full application setup and imports the real pricing business logic without starting the frontend, API, Docker, Supabase/database, or creating `.env` files. If you only need these tests, install Node.js 24 with npm and the dependencies under `tests`; do not complete the full-system setup. No Conda or virtual environment is required.
+
+The suite has been verified on Linux, but this Windows workflow has not yet been run on a Windows machine.
+
+### Move to the project root
+
+Every SRS npm command below starts at the `cart-api-frontend` root. Use **only the one instruction that matches your current directory**; these are alternatives, not consecutive steps:
+
+- Already at `cart-api-frontend`: do not run `cd`.
+- At `backend\api` or `backend\database`: run `cd ..\..`.
+- At `frontend` or `tests`: run `cd ..`.
+
+After moving, `dir` should show `backend`, `frontend`, and `tests`.
+
+### First-time setup
+
+From the project root, verify Node.js 24 and npm, then install the test dependencies:
+
+```cmd
+node --version
+npm --version
+npm --prefix tests ci
+```
+
+`npm --prefix tests ci` reads `tests\package-lock.json` and creates `tests\node_modules`. `npm --prefix tests install` is an alternative that may update the lockfile; use one installation method, not both.
+
+The repository ignores `node_modules` directories, including `tests\node_modules`. Do not commit that generated directory or copy it between Windows and Linux. Recreate it on each machine with `npm --prefix tests ci`.
+
+### Daily use
+
+Open a Terminal, return to the project root using the single matching instruction above, and run the needed command. You do not need `npm ci` every day; rerun it after cloning, when `tests\package-lock.json` changes, or when `tests\node_modules` is missing.
+
+```cmd
+REM Strict TypeScript check
+npm --prefix tests run typecheck:srs
+
+REM All 13 files / 172 test cases, once
+npm --prefix tests run test:srs
+
+REM Watch mode
+npm --prefix tests run test:srs:watch
+
+REM Original or supplementary suite only
+npm --prefix tests run test:srs:original
+npm --prefix tests run test:srs:supplementary
+
+REM One file
+npm --prefix tests run test:srs -- srs-unit/original/unit-09-checkout.test.ts
+
+REM One test ID
+npm --prefix tests run test:srs -- -t "UT-120"
+
+REM Vitest UI
+npm --prefix tests run test:srs:ui
+```
+
+A full run should report **13 passed files and 172 passed tests**, with no failed or skipped tests. When filtering with `-t`, non-matching tests are shown as skipped only for that filtered run.
+
+For the UI, copy the complete URL printed after `UI started at`, including the latest `/__vitest__/` path and `?token=...`, and open it in a browser on the same computer. A typical shape is `http://127.0.0.1:51204/__vitest__/?token=...`; this guide does not contain a real token. A local run does not need port forwarding.
+
+Stop watch mode or the UI with **Ctrl+C**. If CMD asks `Terminate batch job (Y/N)?`, enter `Y`.
 
 ## Optional checks
 
