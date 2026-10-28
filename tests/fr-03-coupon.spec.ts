@@ -1,4 +1,27 @@
+/*
+### FR-3 : คูปอง (ฝั่ง Customer)
+
+FR-3.1 และ FR-3.2 ใช้เมื่อ Customer อยู่ stage `ตะกร้า`
+
+**FR-3.1 การตรวจ code ใน `applyCoupon`**
+
+**FR-3.1.1** ระบบต้องเปรียบเทียบ code ใน `applyCoupon(code)` กับ code ของคูปองแบบตรงตัวอักษร (case-sensitive)
+
+**FR-3.1.2** เมื่อ Customer เรียก `applyCoupon(code)` ด้วย code ที่ไม่มีอยู่ หรือของคูปองที่มีสถานะ `ปิดใช้` ระบบต้องปฏิเสธด้วย `COUPON_INVALID`
+
+**FR-3.2 การผูกคูปอง**
+
+**FR-3.2.1** เมื่อ Customer เรียก `applyCoupon(code)` ด้วย code ของคูปองที่มีสถานะ `เปิดใช้` ระบบต้องผูกคูปองนั้นกับตะกร้าแทนคูปองเดิม (ผูกได้ครั้งละหนึ่งใบ)
+
+**FR-3.2.2** ระบบต้องไม่ตรวจยอดขั้นต่ำของคูปองขณะผูกตาม FR-3.2.1
+
+**FR-3.2.3** ระบบต้องอนุญาตให้ผูกคูปองตาม FR-3.2.1 ได้แม้ตะกร้าไม่มีรายการ
+
+**FR-3.3** ระบบต้องไม่จำกัดจำนวนครั้งที่คูปองหนึ่งใบถูกใช้
+
+*/
 import { test, expect, type Page } from '@playwright/test';
+import { installIsolatedReset } from './fr-e2e-support';
 
 const baseURL = (process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000').replace(/\/$/, '');
 type CouponStatus = 'เปิดใช้' | 'ปิดใช้';
@@ -51,6 +74,7 @@ async function ensureAdminCouponStatus(page: Page, expected: CouponStatus) {
 }
 
 test.describe('FR-3: คูปองฝั่ง Customer', () => {
+  installIsolatedReset();
   test.describe.configure({ mode: 'serial' });
 
   test('FR-3.1.1 / FR-3.2.1–3.2.3: ผูก SAVE10 ได้แม้ตะกร้าว่าง และ code แยกตัวพิมพ์เล็ก-ใหญ่', async ({ page }) => {

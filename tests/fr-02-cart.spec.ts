@@ -1,4 +1,5 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
+import { installIsolatedReset } from './fr-e2e-support';
 
 const baseURL = (process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000').replace(/\/$/, '');
 
@@ -17,8 +18,13 @@ async function signInAndRequireCleanCart(page: Page) {
 
   // ใช้บัญชี Customer สำหรับทดสอบ และลบรายการค้างจากรอบก่อนเพื่อให้เริ่มด้วยตะกร้าว่าง
   const existingLines = page.locator('li[data-testid^="cart-line-"]');
-  while (await existingLines.count()) {
+  // page-cart คือโครงหน้า; รอจน Cart API โหลดและแสดงตะกร้าว่างหรือแถวสินค้า ก่อนนับรายการ
+  await expect(page.getByTestId('cart-empty').or(existingLines.first())).toBeVisible();
+  while (true) {
+    const count = await existingLines.count();
+    if (count === 0) break;
     await existingLines.first().getByTestId('cart-line-remove').click();
+    await expect(existingLines).toHaveCount(count - 1);
   }
   await expect(page.getByTestId('cart-empty')).toBeVisible();
   await expect(page.getByTestId('cart-coupon-code')).toHaveText('');
@@ -66,8 +72,13 @@ async function removeAllCartLines(page: Page) {
   try {
     await page.goto(`${baseURL}/cart`);
     const lines = page.locator('li[data-testid^="cart-line-"]');
-    while (await lines.count()) {
+    // รอให้ Cart API โหลดเสร็จก่อนเริ่ม cleanup หลัง test
+    await expect(page.getByTestId('cart-empty').or(lines.first())).toBeVisible();
+    while (true) {
+      const count = await lines.count();
+      if (count === 0) break;
       await lines.first().getByTestId('cart-line-remove').click();
+      await expect(lines).toHaveCount(count - 1);
     }
   } catch {
     // หาก cleanup ล้มเหลว ให้คง error หลักของเคสทดสอบไว้
@@ -75,6 +86,7 @@ async function removeAllCartLines(page: Page) {
 }
 
 test.describe('FR-2: Customer cart', () => {
+  installIsolatedReset();
   test.describe.configure({ mode: 'serial' });
 
   test.afterEach(async ({ page }) => {
@@ -89,6 +101,14 @@ test.describe('FR-2: Customer cart', () => {
       `No visible product with stock > 0 after the list loaded at ${baseURL}/products. Check the GET /products response and seed data.`,
     ).toBeDefined();
 
+    /*
+    **FR-2.1 รูปแบบและช่วงของ quantity ใน `addItem`**
+
+**FR-2.1.1** เมื่อ Customer เรียก `addItem(productId, quantity)` ด้วย quantity ที่ไม่ใช่จำนวนเต็ม ระบบต้องปฏิเสธด้วย `VALIDATION_ERROR`
+
+**FR-2.1.2** เมื่อ Customer เรียก `addItem(productId, quantity)` ด้วย quantity ที่เป็นจำนวนเต็มแต่อยู่นอกช่วง 1 ถึง 10 ระบบต้องปฏิเสธด้วย `QTY_OUT_OF_RANGE`
+
+    */
     // FR-2.1.2: quantity ที่เป็นจำนวนเต็มแต่นอกช่วง 1–10 ต้องถูกปฏิเสธด้วย QTY_OUT_OF_RANGE
     await addQuantity(product!, 11);
     await expect(product!.card.getByTestId('app-message')).toHaveAttribute('data-code', 'QTY_OUT_OF_RANGE');
@@ -119,6 +139,22 @@ test.describe('FR-2: Customer cart', () => {
     await expect(page.getByTestId('cart-coupon-code')).toHaveText('');
     await expect(page.getByTestId('checkout-button')).toBeEnabled();
 
+    /*
+    **FR-2.5 `updateQuantity`**
+
+**FR-2.5.1** เมื่อ Customer เรียก `updateQuantity(productId, quantity)` ด้วย quantity ที่ไม่ใช่จำนวนเต็ม ระบบต้องปฏิเสธด้วย `VALIDATION_ERROR`
+
+**FR-2.5.2** เมื่อ Customer เรียก `updateQuantity` ด้วย quantity ที่เป็นจำนวนเต็มแต่อยู่นอกช่วง 1 ถึง 10 (รวม 0) ระบบต้องปฏิเสธด้วย `QTY_OUT_OF_RANGE`
+
+**FR-2.5.3** เมื่อ Customer เรียก `updateQuantity` กับสินค้าที่ไม่อยู่ในตะกร้า ระบบต้องปฏิเสธด้วย `ITEM_NOT_IN_CART`
+
+**FR-2.5.4** เมื่อ Customer เรียก `updateQuantity` กับสินค้าในตะกร้าที่ไม่ใช่สินค้าพร้อมขาย ระบบต้องปฏิเสธด้วย `PRODUCT_UNAVAILABLE`
+
+**FR-2.5.5** เมื่อ Customer เรียก `updateQuantity` ด้วย quantity ใหม่ที่เกินสต็อกพร้อมขาย ระบบต้องปฏิเสธด้วย `INSUFFICIENT_STOCK`
+
+**FR-2.5.6** เมื่อ `updateQuantity` ผ่านการตรวจสอบ ระบบต้องแทนที่ quantity ของรายการด้วยค่าใหม่
+
+    */
     // FR-2.5.1: updateQuantity ที่ quantity ไม่เป็นจำนวนเต็มต้องได้ VALIDATION_ERROR และค่าเดิมต้องไม่เปลี่ยน
     const quantityInput = line.getByTestId('cart-line-qty-input');
     await quantityInput.fill('2.5');
@@ -140,6 +176,23 @@ test.describe('FR-2: Customer cart', () => {
     await expect(line.getByTestId('cart-line-qty')).toHaveAttribute('data-value', '3');
     await expect(page.getByTestId('cart-subtotal')).toHaveAttribute('data-value', String(product!.price * 3));
 
+    /*
+    **FR-2.7 `removeItem`**
+    2.7.1 - 2.7.2: API test
+    **FR-2.7.1** เมื่อ Customer เรียก `removeItem(productId)` ขณะตะกร้าไม่มีรายการ ระบบต้องปฏิเสธด้วย `CART_EMPTY` พร้อมข้อความ "ไม่มีสินค้าให้ลบ"
+
+    **FR-2.7.2** เมื่อ Customer เรียก `removeItem(productId)` ขณะตะกร้ามีรายการแต่ไม่มีสินค้านั้น ระบบต้องปฏิเสธด้วย `ITEM_NOT_IN_CART` พร้อมข้อความ "ไม่พบสินค้าในตะกร้า"
+    ///
+    
+    **FR-2.7.3** เมื่อ Customer เรียก `removeItem(productId)` กับสินค้าที่อยู่ในตะกร้า ระบบต้องลบรายการนั้นทั้งรายการ ไม่ว่าสินค้าจะเป็นสินค้าพร้อมขายหรือไม่
+
+    **FR-2.7.4** เมื่อจำนวนรายการในตะกร้าเป็นศูนย์หลังการลบตาม FR-2.7.3 ระบบต้องแสดงข้อความ "ตะกร้าว่าง"
+
+    **FR-2.8** ปุ่ม "ชำระเงิน" ต้องอยู่ในสถานะเปิดใช้งานเมื่อและเฉพาะเมื่อจำนวนรายการในตะกร้ามีตั้งแต่หนึ่งขึ้นไปและ Customer อยู่ stage `ตะกร้า`
+
+    **FR-2.9** `viewCart` ต้องแสดงแต่ละรายการด้วยชื่อ ราคาต่อชิ้น **ปัจจุบัน** quantity และสถานะว่าเป็นสินค้าพร้อมขายหรือไม่ พร้อมทั้งยอดรวมสินค้าและ code คูปองที่ผูกอยู่ (ถ้ามี)
+
+    */
     // FR-2.7.3 / FR-2.7.4: ลบรายการสินค้าออกทั้งรายการ และเมื่อตะกร้าว่างต้องแสดงข้อความตะกร้าว่าง
     await line.getByTestId('cart-line-remove').click();
     await expect(page.getByTestId('cart-empty')).toBeVisible();

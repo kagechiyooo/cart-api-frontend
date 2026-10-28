@@ -3,6 +3,7 @@ import {
   addProduct,
   availableProducts,
   installIsolatedReset,
+  loginAs,
   loginCustomer,
   numericValue,
   openCart,
@@ -136,5 +137,87 @@ test.describe('FR-4: subtotal, discounts, shipping, and net total', () => {
     // ยกเลิก checkout เพื่อคืนสต็อกที่จองไว้; ฐานทดสอบแยกจะถูก reset ก่อนเคสถัดไป
     await page.getByTestId('cancel-checkout-button').click();
     await expect(page.getByTestId('page-cart')).toBeVisible();
+  });
+
+  test('FR-4.3–4.4: disabled attached coupon is removed at checkout and Prime discount applies', async ({ page, context }) => {
+    // Customer ปกติที่ไม่มีคูปองต้องได้ส่วนลดศูนย์
+    const customerProducts = availableProducts(await loginCustomer(page, 'customer'));
+    const customerProduct = customerProducts.find(product => product.id === 'p-1');
+    test.skip(!customerProduct, 'ต้องมีสินค้า p-1 พร้อมขายใน seed');
+    await addProduct(page, customerProduct!, 1);
+    await openCart(page);
+    await expect(page.getByTestId('cart-discount')).toHaveAttribute('data-value', '0');
+
+    // ออกจาก Customer แล้วเข้าสู่ระบบเป็น Prime; แต่ละบัญชีมีตะกร้าแยกกัน
+    await page.getByTestId('logout-button').click();
+    await expect(page.getByTestId('page-login')).toBeVisible();
+    const primeProducts = availableProducts(await loginCustomer(page, 'prime'));
+    const primeProduct = primeProducts.find(product => product.id === 'p-1');
+    test.skip(!primeProduct, 'ต้องมีสินค้า p-1 พร้อมขายใน seed');
+    const price = primeProduct!.price;
+    test.skip(price < 1000, 'ยอดสินค้า p-1 ต้องถึงขั้นต่ำคูปอง SAVE10');
+
+    // ผูก SAVE10 กับตะกร้า Prime ขณะที่คูปองยังเปิดใช้อยู่
+    await addProduct(page, primeProduct!, 1);
+    await openCart(page);
+    await page.getByTestId('coupon-input').fill('SAVE10');
+    await page.getByTestId('coupon-apply').click();
+    await expect(page.getByTestId('cart-coupon-code')).toHaveText('SAVE10');
+
+    // ใช้อีกแท็บ Login เป็น Admin เพื่อปิดคูปอง โดยไม่เปลี่ยน session ของ Prime
+    const adminPage = await context.newPage();
+    await loginAs(adminPage, 'admin');
+    await adminPage.getByTestId('admin-nav-coupons').click();
+    const couponRow = adminPage.getByTestId('admin-coupon-row-SAVE10');
+    await expect(couponRow.getByTestId('admin-coupon-status')).toHaveAttribute('data-status', 'เปิดใช้');
+    await couponRow.getByTestId('admin-coupon-toggle-status').click();
+    await expect(couponRow.getByTestId('admin-coupon-status')).toHaveAttribute('data-status', 'ปิดใช้');
+
+    // FR-4.3: checkout ต้องถอดคูปองที่ถูกปิดและแสดง notice ตาม SRS
+    await page.getByTestId('checkout-button').click();
+    await expect(page.getByTestId('page-checkout')).toBeVisible();
+    await expect(page.getByTestId('app-message')).toHaveAttribute('data-code', 'COUPON_NOT_APPLICABLE');
+    await expect(page.getByTestId('app-message')).toContainText('คูปองไม่สามารถใช้กับคำสั่งซื้อนี้');
+
+    // FR-4.4: เมื่อตัดคูปองออก Prime ต้องได้ส่วนลดสมาชิก 5% แทน
+    await expect(page.getByTestId('checkout-discount'))
+      .toHaveAttribute('data-value', String(Math.floor(price * 5 / 100)));
+
+    // คืนสถานะคูปองให้เปิดใช้เพื่อไม่ทิ้งข้อมูลทดสอบค้างไว้
+    await couponRow.getByTestId('admin-coupon-toggle-status').click();
+    await expect(couponRow.getByTestId('admin-coupon-status')).toHaveAttribute('data-status', 'เปิดใช้');
+  });
+
+  test('FR-4.5: shipping preview reflects light, medium, and heavy total-weight tiers', async ({ page }) => {
+    const products = availableProducts(await loginCustomer(page, 'customer'));
+    const mediumProduct = products.find(product => product.id === 'p-2' && product.stock >= 2);
+    const heavyProduct = products.find(product => product.id === 'p-6' && product.stock >= 7);
+    test.skip(!mediumProduct || !heavyProduct, 'Seed ต้องมี p-2 stock >= 2 และ p-6 stock >= 7');
+
+    // p-2 หนัก 900 กรัม × 1 = 900 กรัม จัดเป็น light
+    await addProduct(page, mediumProduct!, 1);
+    await openCart(page);
+    await page.getByTestId('zone-select').selectOption('inCity');
+    await page.getByTestId('speed-select').selectOption('standard');
+    await expect(page.getByTestId('cart-shipping')).toHaveAttribute('data-value', '30');
+
+    // p-2 หนัก 900 กรัม × 2 = 1,800 กรัม จัดเป็น medium
+    const mediumLine = page.getByTestId(`cart-line-${mediumProduct!.id}`);
+    await mediumLine.getByTestId('cart-line-qty-input').fill('2');
+    await mediumLine.getByTestId('cart-line-update').click();
+    await expect(mediumLine.getByTestId('cart-line-qty')).toHaveAttribute('data-value', '2');
+    await expect(page.getByTestId('cart-shipping')).toHaveAttribute('data-value', '50');
+
+    // ลบรายการ medium ก่อน เพื่อไม่ให้น้ำหนักสะสมกับกรณี heavy
+    await mediumLine.getByTestId('cart-line-remove').click();
+    await expect(page.getByTestId('cart-empty')).toBeVisible();
+    await page.getByTestId('nav-products').click();
+
+    // p-6 หนัก 800 กรัม × 7 = 5,600 กรัม จัดเป็น heavy
+    await addProduct(page, heavyProduct!, 7);
+    await openCart(page);
+    await page.getByTestId('zone-select').selectOption('inCity');
+    await page.getByTestId('speed-select').selectOption('standard');
+    await expect(page.getByTestId('cart-shipping')).toHaveAttribute('data-value', '80');
   });
 });

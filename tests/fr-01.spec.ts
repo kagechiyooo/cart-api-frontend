@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { installIsolatedReset } from './fr-e2e-support';
 
 /**
  * FR-0 / FR-1 smoke coverage for the Cart API frontend.
@@ -29,6 +30,7 @@ async function loginAsDemo(page: Page, account: 'customer' | 'admin') {
 }
 
 test.describe('FR-0 / FR-1: authentication and product listing', () => {
+  installIsolatedReset();
   // **FR-0.1.1** เมื่อผู้ใช้เรียก `login(username, password)` ด้วย username และ password ที่ตรงกับบัญชีที่ลงทะเบียนไว้ล่วงหน้า ระบบต้องให้ผู้ใช้เข้าสู่ระบบในบทบาทของบัญชีนั้น
   test('FR-0.1.1: registered Customer can log in and reach the product list', async ({ page }) => {
     await loginAsDemo(page, 'customer');

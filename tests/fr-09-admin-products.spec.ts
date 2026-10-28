@@ -73,10 +73,14 @@ test.describe('FR-9: Admin จัดการสินค้า', () => {
     const snapshotResponse = await apiRequest(page, 'GET', `/orders/${encodeURIComponent(orderId)}`);
     const snapshot = await snapshotResponse.json();
 
-    const priceInput = adminRow.getByTestId('admin-product-price-input');
-    await priceInput.fill(String(product!.price + 10));
-    await adminRow.getByTestId('admin-product-save').click();
-    await expect(adminRow.getByTestId('admin-product-price')).toHaveAttribute('data-value', String(product!.price + 10));
+    // FR-9.4: เปลี่ยนราคาผ่าน API ด้วย session ของ Admin หลังบันทึก order snapshot แล้ว
+    // การแก้ราคาผ่าน UI ถูกทดสอบใน FR-9.1–9.3; เคสนี้โฟกัสว่าราคาใน snapshot เดิมไม่เปลี่ยน
+    const newPrice = product!.price + 10;
+    const priceUpdate = await apiRequest(admin, 'PATCH', `/admin/products/${encodeURIComponent(product!.id)}`, { price: newPrice });
+    expect(priceUpdate.ok(), `แก้ราคาสินค้าไม่สำเร็จ: HTTP ${priceUpdate.status()}`).toBeTruthy();
+    const updatedProductsResponse = await apiRequest(admin, 'GET', '/products');
+    const updatedProducts = await updatedProductsResponse.json() as Array<{ productId: string; price: number }>;
+    expect(updatedProducts.find(item => item.productId === product!.id)?.price).toBe(newPrice);
     await adminRow.getByTestId('admin-product-toggle-status').click();
     await expect(adminRow.getByTestId('admin-product-status')).toHaveAttribute('data-status', 'ปิดขาย');
     const unchanged = await apiRequest(page, 'GET', `/orders/${encodeURIComponent(orderId)}`);
